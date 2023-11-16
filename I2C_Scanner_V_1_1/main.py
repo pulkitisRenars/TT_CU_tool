@@ -1,4 +1,3 @@
-#I2C_Scanner_V_1_1.py
 #I2C and ControlUnit scanner tool meant for testing TTunits and ControlUnits. The tool tests I2C devices(Real-Time-Clock, EEPROM, Buzzer),
 #also the ControlUnit(connected relays, Alarm state), Wiegand RFID card reader(all 4 pin addresses, card data, reader functionality)
 
@@ -56,6 +55,7 @@ i2c=machine.I2C(0,sda=sda,scl=scl,freq=400000)
 global atmega_found
 atmega_found=False
 true_found=False
+eeprom_check = False
 global mDevice#Global variable that says which Unit is used
 uartID=UART(1,baudrate=57600,timeout=1, invert=3)#Object used to find out if there is a ControlUnit connected or not
 
@@ -79,53 +79,80 @@ display = ILI9341(#Object used to overall display the LCD display
 
 eprom=EEPROM(#Object used to work with units EEPROM storage
     addr=80,
-    pages=128,
-    bpp=32,
+    pages=256,
+    bpp=64,
     i2c=i2c,
     at24x=0
     )
 
+try:
+    for i in range(10):
+        eprom.write(0, "test")
+        epromVal=eprom.read(0,4)
+except:
+    eeprom_check = False
+    print(eeprom_check)
+else:
+    eeprom_check = True
+    print(eeprom_check)
+
+    
 #2D array that has the I2C addresses, hardware name and its status in the scanner(if there are more hardware connected, than add its info in the array)
 i2c_devices=[['104','EEPROM','False'],['80','RTC','False']]
 statusArr=[]
 
 def EEPROM_check(y,i2c_devices,results):#EEPROM testing function
     global statusArr
+    values = []
+    stat = False
     newFrame(2)
     display.set_pos(10, 60)
     display.set_color(color565(0, 0, 0), color565(255, 255, 255))
     display.print('Testing EEPROM')
     try:
-        eprom.write(0, "test")#Writes EEPROM value
+        for i in range(20):
+            eprom.write(i*65, "test")#Writes EEPROM value
     except:#Finds out if the EEPROM writing works
         statusArr.append('* EEPROM communication: Write ERR')
         i2c_devices[1][2]='False'
     else:
-        eprom.write(0, "test")#Writes EEPROM value
+        for i in range(20):
+            eprom.write(i*65, "test")#Writes EEPROM value
     try:
-            epromVal=eprom.read(0,4)#Reads EEPROM value
+        for i in range(20):
+            eprom.read(i*65, 4)#Writes EEPROM value
     except:#Finds out if the EEPROM reading works
         statusArr.append('* EEPROM communication: Read ERR')
         i2c_devices[1][2]='False'
     else:
-            epromVal=eprom.read(0,4)#Reads EEPROM value
+        for i in range(20):
+            values.append(eprom.read(i*65, 4))#Writes EEPROM value
     try:
-        if "test" in epromVal:#Checks if in the EEPROM memory exists a value
-          y+=30  
+        for value in values:
+            if "test" in value:#Checks if in the EEPROM memory exists a value
+                stat = True
+            else:
+                stat=False
+            y+=30  
     except:#The try except is used because of a possible error, if the reading and writing doesn't work
         statusArr.append('* EEPROM Read-Write ERROR')
         i2c_devices[1][2]='False'
     else:
-        if "test" in epromVal:#Checks if in the EEPROM memory exists a value
-            statusArr.append('* EEPROM communication: Write OK')
-            statusArr.append('* EEPROM communication: Read OK')
-            if results==True:#Used for result identification further on in the code
-                results=False
+        for value in values:
+            if "test" in value:#Checks if in the EEPROM memory exists a value
+                stat = True
             else:
-                results=True
-        else:#If there is a EEPROM read-write error
-            statusArr.append('* EEPROM Read-Write ERROR')
-            i2c_devices[0][2]='False'
+                stat=False
+                statusArr.append('* EEPROM Read-Write ERROR')
+                i2c_devices[0][2]='False'
+        if stat == True:
+                statusArr.append('* EEPROM communication: Write OK')
+                statusArr.append('* EEPROM communication: Read OK')
+        if results==True:#Used for result identification further on in the code
+            results=False
+        else:
+            results=True
+
         eprom.wipe()
         
 def RFID_check(): # RFID card reader testing function
@@ -134,6 +161,7 @@ def RFID_check(): # RFID card reader testing function
     RFID_res=[]
     pg=9
     i=0
+    loop=0
     for add in RFID_adr:#Goes through each pin address to test
         pg+=1
         i+=1
@@ -160,7 +188,7 @@ def RFID_check(): # RFID card reader testing function
         display.print("Wiegand Type(bits):")
 
         while True:
-            if wiegand_reader.available():#Checks if card has been scanned by the RFID card reader
+            if wiegand_reader.available() and loop==0:#Checks if card has been scanned by the RFID card reader
                 for x in range(2):
                     led.high()
                     buz.high()
@@ -168,26 +196,26 @@ def RFID_check(): # RFID card reader testing function
                     led.low()
                     buz.low()
                     utime.sleep(0.4)
-                card_code = wiegand_reader.GetCode()# Gets the card code
-                card_revCode=wiegand_reader.GetRevCode()
-                card_type = wiegand_reader.GetType()# Gets the RFID bit type
-                display.set_pos(10, 160)
-                display.print("RFID Card Data:" + str(card_code))
-                display.set_pos(10, 190)
-                display.print("Wiegand Card Data(rev):" + str(card_revCode))
-                display.set_pos(10, 220)
-                display.print("Wiegand Type(bits):" + str(card_type))
-                if str(i)+'.' in RFID_res:
-                    print("not append")
-                else:
+                if loop==0:
+                    loop=1
+                    card_code = wiegand_reader.GetCode()# Gets the card code
+                    card_revCode=wiegand_reader.GetRevCode()
+                    card_type = wiegand_reader.GetType()# Gets the RFID bit type
+                    display.set_pos(10, 160)
+                    display.print("RFID Card Data:" + str(card_code))
+                    display.set_pos(10, 190)
+                    display.print("Wiegand Card Data(rev):" + str(card_revCode))
+                    display.set_pos(10, 220)
+                    display.print("Wiegand Type(bits):" + str(card_type))
                     RFID_res.append(str(i)+'.')#Puts the RFID card reader functionality statuss
-                if results == True:  # Used for result identification further on in the code
+                    if results == True:  # Used for result identification further on in the code
                         results = False
-                else:
+                    else:
                         results = True
             button_pressed = button.value() == 0  # Check if the button is pressed
 
             if button_pressed:
+                loop=0
                 break
     if RFID_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
         statusArr.append('* 0 Wiegand readers work: ERR')
@@ -287,6 +315,8 @@ def RTC_check(y,i2c_devices,results):#Real-Time-Clock hardware testing function
 
 def newFrame(pg):#Function for a new frame on the LCD display
     device=i2c.scan()
+    print("devices")
+    print(device)
     display.erase()
     display.fill_rectangle(0 , 0, 240, 320, 65535)
     display.fill_rectangle(0 , 0, 240, 50, 008000)
@@ -339,9 +369,14 @@ def scan_i2c():#The main scanner function
         print("Found I2C devices")
         display.set_pos(135, 60)
         lvl=30
-        display.print(str(hex(devices[0])+", "+str(hex(devices[1]))))
+        col = 60
+        for device in devices:
+            display.set_pos(135, col)
+            display.print(f"{hex(device)};")
+            col = col+15
         if checkU is not None and checkU!=b'\x00':#Checks if there is a ControlUnit connected
-            display.set_pos(10, 90)
+            col = col+10
+            display.set_pos(10, col)
             display.print('* ControlUnit device found')
             print("Found ControlUnit device")
         utime.sleep(2)
@@ -403,10 +438,14 @@ def scan_i2c():#The main scanner function
            
     else:#If there aren't any I2C hardware found
         newFrame(0)
+        print(devices)
         display.set_pos(10, 60)
         display.set_color(color565(0, 0, 255), color565(255, 255, 255))
         display.print('* I2C devices not found.')
         print("There weren't any I2C devices found")
+        if eeprom_check == False:
+            display.set_pos(10, 90)
+            display.print('* Likely a problem with EEPROM.')
         mDevice=None
         btn_count=0
         
@@ -514,3 +553,4 @@ while True:#If button is pressed restarts the main scanner function
             btn_count=0
             statusArr=[]
             RFID_res=[]
+
