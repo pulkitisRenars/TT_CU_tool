@@ -1,4 +1,3 @@
-#I2C_Scanner_V_1_1.py
 #I2C and ControlUnit scanner tool meant for testing TTunits and ControlUnits. The tool tests I2C devices(Real-Time-Clock, EEPROM, Buzzer),
 #also the ControlUnit(connected relays, Alarm state), Wiegand RFID card reader(all 4 pin addresses, card data, reader functionality)
 
@@ -56,6 +55,7 @@ i2c=machine.I2C(0,sda=sda,scl=scl,freq=400000)
 global atmega_found
 atmega_found=False
 true_found=False
+eeprom_check = False
 global mDevice#Global variable that says which Unit is used
 uartID=UART(1,baudrate=57600,timeout=1, invert=3)#Object used to find out if there is a ControlUnit connected or not
 
@@ -79,55 +79,70 @@ display = ILI9341(#Object used to overall display the LCD display
 
 eprom=EEPROM(#Object used to work with units EEPROM storage
     addr=80,
-    pages=128,
-    bpp=32,
+    pages=256,
+    bpp=64,
     i2c=i2c,
     at24x=0
     )
 
+try:
+    for i in range(10):
+        eprom.write(0, "test")
+        epromVal=eprom.read(0,4)
+except:
+    eeprom_check = False
+    print(eeprom_check)
+else:
+    eeprom_check = True
+    print(eeprom_check)
+eprom.wipe()
+    
+def RandomString(length=6):
+    characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    random_string = ''.join(random.choice(characters) for _ in range(length))
+    return random_string
+
+    
 #2D array that has the I2C addresses, hardware name and its status in the scanner(if there are more hardware connected, than add its info in the array)
 i2c_devices=[['104','EEPROM','False'],['80','RTC','False']]
 statusArr=[]
 
+
 def EEPROM_check(y,i2c_devices,results):#EEPROM testing function
     global statusArr
     newFrame(2)
+    random_arr = []
     display.set_pos(10, 60)
     display.set_color(color565(0, 0, 0), color565(255, 255, 255))
     display.print('Testing EEPROM')
     try:
-        eprom.write(0, "test")#Writes EEPROM value
+
+        for i in range(256):
+            random_arr.append(RandomString())
+            eprom.write(i*64, random_arr[i])
+        
+        statusArr.append('* EEPROM communication: Write OK')
+
     except:#Finds out if the EEPROM writing works
         statusArr.append('* EEPROM communication: Write ERR')
         i2c_devices[1][2]='False'
-    else:
-        eprom.write(0, "test")#Writes EEPROM value
+
     try:
-            epromVal=eprom.read(0,4)#Reads EEPROM value
+        
+        for i in range(256):
+            if random_arr[i] not in eprom.read(i*64,6):
+                break
+        if i == 255:       
+            statusArr.append('* EEPROM communication: Read OK')
+        else:
+            statusArr.append('* EEPROM communication: Read ERR')
+
     except:#Finds out if the EEPROM reading works
         statusArr.append('* EEPROM communication: Read ERR')
         i2c_devices[1][2]='False'
-    else:
-            epromVal=eprom.read(0,4)#Reads EEPROM value
-    try:
-        if "test" in epromVal:#Checks if in the EEPROM memory exists a value
-          y+=30  
-    except:#The try except is used because of a possible error, if the reading and writing doesn't work
-        statusArr.append('* EEPROM Read-Write ERROR')
-        i2c_devices[1][2]='False'
-    else:
-        if "test" in epromVal:#Checks if in the EEPROM memory exists a value
-            statusArr.append('* EEPROM communication: Write OK')
-            statusArr.append('* EEPROM communication: Read OK')
-            if results==True:#Used for result identification further on in the code
-                results=False
-            else:
-                results=True
-        else:#If there is a EEPROM read-write error
-            statusArr.append('* EEPROM Read-Write ERROR')
-            i2c_devices[0][2]='False'
-        eprom.wipe()
-        
+
+    eprom.wipe()
+    
 def RFID_check(): # RFID card reader testing function
     global results, RFID_res
     RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]#RFID card reader addresses
@@ -288,6 +303,8 @@ def RTC_check(y,i2c_devices,results):#Real-Time-Clock hardware testing function
 
 def newFrame(pg):#Function for a new frame on the LCD display
     device=i2c.scan()
+    print("devices")
+    print(device)
     display.erase()
     display.fill_rectangle(0 , 0, 240, 320, 65535)
     display.fill_rectangle(0 , 0, 240, 50, 008000)
@@ -340,9 +357,14 @@ def scan_i2c():#The main scanner function
         print("Found I2C devices")
         display.set_pos(135, 60)
         lvl=30
-        display.print(hex(devices[0]))
+        col = 60
+        for device in devices:
+            display.set_pos(135, col)
+            display.print(f"{hex(device)};")
+            col = col+15
         if checkU is not None and checkU!=b'\x00':#Checks if there is a ControlUnit connected
-            display.set_pos(10, 90)
+            col = col+10
+            display.set_pos(10, col)
             display.print('* ControlUnit device found')
             print("Found ControlUnit device")
         utime.sleep(2)
@@ -404,10 +426,14 @@ def scan_i2c():#The main scanner function
            
     else:#If there aren't any I2C hardware found
         newFrame(0)
+        print(devices)
         display.set_pos(10, 60)
         display.set_color(color565(0, 0, 255), color565(255, 255, 255))
         display.print('* I2C devices not found.')
         print("There weren't any I2C devices found")
+        if eeprom_check == False:
+            display.set_pos(10, 90)
+            display.print('* Likely a problem with EEPROM.')
         mDevice=None
         btn_count=0
         

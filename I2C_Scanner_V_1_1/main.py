@@ -95,66 +95,54 @@ except:
 else:
     eeprom_check = True
     print(eeprom_check)
+eprom.wipe()
+    
+def RandomString(length=6):
+    characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    random_string = ''.join(random.choice(characters) for _ in range(length))
+    return random_string
 
     
 #2D array that has the I2C addresses, hardware name and its status in the scanner(if there are more hardware connected, than add its info in the array)
 i2c_devices=[['104','EEPROM','False'],['80','RTC','False']]
 statusArr=[]
 
+
 def EEPROM_check(y,i2c_devices,results):#EEPROM testing function
     global statusArr
-    values = []
-    stat = False
     newFrame(2)
+    random_arr = []
     display.set_pos(10, 60)
     display.set_color(color565(0, 0, 0), color565(255, 255, 255))
     display.print('Testing EEPROM')
     try:
-        for i in range(20):
-            eprom.write(i*65, "test")#Writes EEPROM value
+
+        for i in range(256):
+            random_arr.append(RandomString())
+            eprom.write(i*64, random_arr[i])
+        
+        statusArr.append('* EEPROM communication: Write OK')
+
     except:#Finds out if the EEPROM writing works
         statusArr.append('* EEPROM communication: Write ERR')
         i2c_devices[1][2]='False'
-    else:
-        for i in range(20):
-            eprom.write(i*65, "test")#Writes EEPROM value
+
     try:
-        for i in range(20):
-            eprom.read(i*65, 4)#Writes EEPROM value
+        
+        for i in range(256):
+            if random_arr[i] not in eprom.read(i*64,6):
+                break
+        if i == 255:       
+            statusArr.append('* EEPROM communication: Read OK')
+        else:
+            statusArr.append('* EEPROM communication: Read ERR')
+
     except:#Finds out if the EEPROM reading works
         statusArr.append('* EEPROM communication: Read ERR')
         i2c_devices[1][2]='False'
-    else:
-        for i in range(20):
-            values.append(eprom.read(i*65, 4))#Writes EEPROM value
-    try:
-        for value in values:
-            if "test" in value:#Checks if in the EEPROM memory exists a value
-                stat = True
-            else:
-                stat=False
-            y+=30  
-    except:#The try except is used because of a possible error, if the reading and writing doesn't work
-        statusArr.append('* EEPROM Read-Write ERROR')
-        i2c_devices[1][2]='False'
-    else:
-        for value in values:
-            if "test" in value:#Checks if in the EEPROM memory exists a value
-                stat = True
-            else:
-                stat=False
-                statusArr.append('* EEPROM Read-Write ERROR')
-                i2c_devices[0][2]='False'
-        if stat == True:
-                statusArr.append('* EEPROM communication: Write OK')
-                statusArr.append('* EEPROM communication: Read OK')
-        if results==True:#Used for result identification further on in the code
-            results=False
-        else:
-            results=True
 
-        eprom.wipe()
-        
+    eprom.wipe()
+    
 def RFID_check(): # RFID card reader testing function
     global results, RFID_res
     RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]#RFID card reader addresses
@@ -553,4 +541,3 @@ while True:#If button is pressed restarts the main scanner function
             btn_count=0
             statusArr=[]
             RFID_res=[]
-
