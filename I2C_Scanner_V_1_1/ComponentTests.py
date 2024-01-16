@@ -35,7 +35,7 @@ scl=machine.Pin(1)
 
 
 class ComponentTests:
-    def __init__(self):
+    def __init__(self, NewFrame):
 
         self.main_button = Pin(25, Pin.IN, Pin.PULL_UP)
         self.TT_buzzer = Pin(24,Pin.OUT)
@@ -61,6 +61,9 @@ class ComponentTests:
         self.results_list = []
 
         self.rtc=machine.RTC()#Real-Time-Clock defining
+
+        self.NewFrame = NewFrame
+
         pass
 
     def EepromPreTest(self):
@@ -75,6 +78,7 @@ class ComponentTests:
             eeprom_check = True
             print(eeprom_check)
         self.eprom.wipe()
+        return eeprom_check
 
     def UartComPreTest(self):
         try:
@@ -83,15 +87,17 @@ class ComponentTests:
             self.M.Receive(True)
             checkU=self.uartID.read()#Variable used to find out if there is a ControlUnit connected or not
             print(checkU)
+            return checkU
         except:
             checkU = None
+            return checkU
 
     def EEPROM_check(self):#EEPROM testing function
-        newFrame(self.page)
+        self.NewFrame(self.page)
         random_arr = []
-        self.self.display.set_pos(10, 60)
-        self.self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-        self.self.display.print('Testing EEPROM')
+        self.display.set_pos(10, 60)
+        self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
+        self.display.print('Testing EEPROM')
         try:
 
             for i in range(256):
@@ -99,10 +105,11 @@ class ComponentTests:
                 self.eprom.write(i*64, random_arr[i])
             
             self.results_list.append('* EEPROM communication: Write OK')
+            
 
         except:#Finds out if the EEPROM writing works
             self.results_list.append('* EEPROM communication: Write ERR')
-            i2c_devices[1][2]='False'
+            self.i2c_devices[0][2]='False'
 
         try:
             
@@ -111,18 +118,19 @@ class ComponentTests:
                     break
             if i == 255:       
                 self.results_list.append('* EEPROM communication: Read OK')
+                
             else:
                 self.results_list.append('* EEPROM communication: Read ERR')
+                self.i2c_devices[0][2]='False'
 
         except:#Finds out if the EEPROM reading works
             self.results_list.append('* EEPROM communication: Read ERR')
-            i2c_devices[1][2]='False'
+            self.i2c_devices[0][2]='False'
 
         self.eprom.wipe()
 
     def RTC_check(self):#Real-Time-Clock hardware testing function
-        global statusArr
-        newFrame(self.page)
+        self.NewFrame(self.page)
 
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
@@ -145,41 +153,142 @@ class ComponentTests:
                 self.results_list.append('* RTC communication: Read OK')
 
         except:#Finds out if RTC hardware even works
-            self.results_list.statusArr.append('* RTC communication: Read ERR')
+            self.results_list.append('* RTC communication: Read ERR')
             self.i2c_devices[1][2]='False'
 
         self.rtc.datetime(oldRtc)
 
-    def ATmega_check(self,y,results):#ControlUnit testing function
-        newFrame(3)
+    def ATmega_check(self):#ControlUnit testing function
+        self.NewFrame(self.page)
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
         self.display.print('Testing ControlUnit')
-        atmega_found=False#Variable used for the ControlUnits functionality identification
         ATmega = None
         try:
-            ATmega=M.HWCheck()
+            ATmega=self.M.HWCheck()
+        except:
+            ATmega = False
         y+=30
         if ATmega ==True:
-            atmega_found=True#Sets the ConrolUnits status as True
-            statusArr.append('* ConUnit communication: Write OK')
-            statusArr.append('* ConUnit communication: Read OK')
-            if results==True:#Used for result identification further on in the code
-                    results=False
-            else:
-                    results=True
+            self.results_list.append('* ConUnit communication: Write OK')
+            self.results_list.append('* ConUnit communication: Read OK')
+
         else:#If the hardware check function gives out False value
-            statusArr.append('* ConUnit communication: Write ERR')
-            statusArr.append('* ConUnit communication: Read ERR')
-        self.display.set_pos(130, 10)
-        self.display.set_font(tt14)
-        self.display.write("TEST RELAYS---->")
-        while True:
-            button_pressed = button.value() == 0  # Check if the button is pressed
-            if button_pressed:
-                ATmega_relay_check()
-                RFID_check()
-                break
+            self.results_list.append('* ConUnit communication: Write ERR')
+            self.results_list.append('* ConUnit communication: Read ERR')
+        # self.display.set_pos(130, 10)
+        # self.display.set_font(tt14)
+        # self.display.write("TEST RELAYS---->")
+        # while True:
+        #     button_pressed = self.button.value() == 0  # Check if the button is pressed
+        #     if button_pressed:
+        #         ATmega_relay_check()
+        #         RFID_check()
+        #         break
+            
+    def ATmega_relay_check(self):#Relay testing function
+        signalArr=["turnstile1_a","turnstile1_b","turnstile2_a","turnstile2_b","button1","button2"]#Array of all test-needed relays
+        for relayName in signalArr:#Goes through each test-needed relays
+            self.NewFrame(self.page)
+            self.display.set_pos(10, 60)
+            self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
+            self.display.print('* '+relayName+' testing')
+            self.display.fill_rectangle(5, 90, 180, 45, 008000)
+            self.display.set_pos(10, 100)
+            self.display.set_font(tt24)
+            self.display.print("Listen for relay!")
+            self.display.set_font(tt14)
+            self.M.Queue("SIGNAL",relayName)#Signals ControlUnit to turn on relay
+            self.M.Send(True)
+            self.page+=1
+            utime.sleep(3)
+
+    def RFID_check(self): # RFID card reader testing function
+
+        RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]#RFID card reader addresses
+        RFID_res=[]
+
+        loop=0
+
+        for i, add in enumerate(RFID_adr):#Goes through each pin address to test
+            self.page+=1
+            wiegand_reader = Wiegand(add[0], add[1])#Sets the pin addresses to work with the wiegand protocol
+
+            led=Pin(add[2],Pin.OUT)
+            buz=Pin(add[3],Pin.OUT)
+
+            self.NewFrame(self.page)
+
+            self.display.set_pos(170, 10)
+            self.display.set_font(tt14)
+            self.display.write("PRESS---->")
+
+            self.display.set_pos(10, 60)
+            self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
+            self.display.print('* '+str(i+1)+'. Wiegand device address testing')
+
+            self.display.fill_rectangle(5, 90, 215, 45, 008000)
+
+            self.display.set_pos(10, 100)
+            self.display.set_font(tt24)
+            self.display.print("For next test press")
+
+            self.display.set_font(tt14)
+            self.display.set_pos(10, 160)
+            self.display.print("Wiegand Card Data:")
+
+            self.display.set_pos(10, 190)
+            self.display.print("Wiegand Card Data(rev):")
+
+            self.display.set_pos(10, 220)
+            self.display.print("Wiegand Type(bits):")
+
+            while True:
+                if wiegand_reader.available() and loop==0:#Checks if card has been scanned by the RFID card reader
+                    for x in range(2):
+                        led.high()
+                        buz.high()
+
+                        utime.sleep(0.4)
+
+                        led.low()
+                        buz.low()
+
+                        utime.sleep(0.4)
+
+                    if loop==0:
+                        loop=1
+
+                        card_code = wiegand_reader.GetCode()# Gets the card code
+                        self.display.set_pos(10, 160)
+                        self.display.print("RFID Card Data:" + str(card_code))
+
+
+                        card_revCode=wiegand_reader.GetRevCode()
+                        self.display.set_pos(10, 190)
+                        self.display.print("Wiegand Card Data(rev):" + str(card_revCode))                        
+
+                        card_type = wiegand_reader.GetType()# Gets the RFID bit type
+                        self.display.set_pos(10, 220)
+                        self.display.print("Wiegand Type(bits):" + str(card_type))
+
+                        RFID_res.append(str(i+1)+'.')#Puts the RFID card reader functionality status
+
+                button_pressed = self.button.value() == 0  # Check if the button is pressed
+
+                if button_pressed:
+                    loop=0
+
+                    break
+
+        if RFID_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
+
+            self.results_list.append('* 0 Wiegand readers work: ERR')
+
+        elif RFID_res != []:#If there are working card readers it puts in the status array information for results showcase
+
+            self.results_list.append('* '+len(RFID_res)+' Wiegand readers work')
+
 
 
 def RandomString(length=6):
