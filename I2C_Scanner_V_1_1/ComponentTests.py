@@ -48,6 +48,8 @@ class ComponentTests:
 
         self.i2c_devices=[['104','EEPROM','False'],['80','RTC','False']]
 
+        self.rfid_res = []
+
         self.uart_id=UART( 1, baudrate=57600, timeout=1, invert=3 )#Object used to find out if there is a ControlUnit connected or not
 
         self.M = MSG(print)
@@ -65,6 +67,14 @@ class ComponentTests:
         self.NewFrame = NewFrame
 
         pass
+
+
+    def ResetForTest(self):
+
+        self.rfid_res = []
+        self.results_list = []
+        self.used_device = None
+        self.page = 0
 
     def EepromPreTest(self):
         try:
@@ -91,6 +101,7 @@ class ComponentTests:
         except:
             checkU = None
             return checkU
+        
 
     def EEPROM_check(self):#EEPROM testing function
         self.NewFrame(self.page)
@@ -206,7 +217,6 @@ class ComponentTests:
     def RFID_check(self): # RFID card reader testing function
 
         RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]#RFID card reader addresses
-        RFID_res=[]
 
         loop=0
 
@@ -272,7 +282,7 @@ class ComponentTests:
                         self.display.set_pos(10, 220)
                         self.display.print("Wiegand Type(bits):" + str(card_type))
 
-                        RFID_res.append(str(i+1)+'.')#Puts the RFID card reader functionality status
+                        self.rfid_res.append(str(i+1)+'.')#Puts the RFID card reader functionality status
 
                 button_pressed = self.button.value() == 0  # Check if the button is pressed
 
@@ -281,13 +291,13 @@ class ComponentTests:
 
                     break
 
-        if RFID_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
+        if self.rfid_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
 
             self.results_list.append('* 0 Wiegand readers work: ERR')
 
-        elif RFID_res != []:#If there are working card readers it puts in the status array information for results showcase
+        elif self.rfid_res != []:#If there are working card readers it puts in the status array information for results showcase
 
-            self.results_list.append('* '+len(RFID_res)+' Wiegand readers work')
+            self.results_list.append('* '+len(self.rfid_res)+' Wiegand readers work')
 
 
 
