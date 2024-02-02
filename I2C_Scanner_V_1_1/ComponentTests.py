@@ -1,19 +1,19 @@
 import machine
-from ili934xnew import ILI9341, color565
+from I2C_Scanner_V_1_1.display.ili934xnew import ILI9341, color565
 from machine import Pin, SPI, UART
-import m5stack
-from eeprom import EEPROM
-import glcdfont
+import I2C_Scanner_V_1_1.tools.m5stack as m5stack
+from I2C_Scanner_V_1_1.tools.eeprom import EEPROM
+import I2C_Scanner_V_1_1.display.glcdfont as glcdfont
 from micropython import const
-import tt14
-import tt24
+import I2C_Scanner_V_1_1.display.tt14 as tt14
+import I2C_Scanner_V_1_1.display.tt24 as tt24
 import random
-import tt32
+import I2C_Scanner_V_1_1.display.tt32 as tt32
 import os
 import utime
 import sys
-from MSG import MSG
-from Wiegand import Wiegand
+from I2C_Scanner_V_1_1.tools.MSG import MSG
+from I2C_Scanner_V_1_1.tools.Wiegand import Wiegand
 
 
 SCR_WIDTH = const(480)
@@ -171,10 +171,13 @@ class ComponentTests:
 
     def ATmega_check(self):#ControlUnit testing function
         self.NewFrame(self.page)
+
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
         self.display.print('Testing ControlUnit')
+
         ATmega = None
+        
         try:
             ATmega=self.M.HWCheck()
         except:
@@ -187,15 +190,6 @@ class ComponentTests:
         else:#If the hardware check function gives out False value
             self.results_list.append('* ConUnit communication: Write ERR')
             self.results_list.append('* ConUnit communication: Read ERR')
-        # self.display.set_pos(130, 10)
-        # self.display.set_font(tt14)
-        # self.display.write("TEST RELAYS---->")
-        # while True:
-        #     button_pressed = self.button.value() == 0  # Check if the button is pressed
-        #     if button_pressed:
-        #         ATmega_relay_check()
-        #         RFID_check()
-        #         break
             
     def ATmega_relay_check(self):#Relay testing function
         signalArr=["turnstile1_a","turnstile1_b","turnstile2_a","turnstile2_b","button1","button2"]#Array of all test-needed relays

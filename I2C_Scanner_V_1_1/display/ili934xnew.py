@@ -15,7 +15,7 @@
 
 import time
 import ustruct
-import glcdfont
+import I2C_Scanner_V_1_1.display.glcdfont as glcdfont
 import framebuf
 from micropython import const
 

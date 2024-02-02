@@ -2,21 +2,21 @@
 #also the ControlUnit(connected relays, Alarm state), Wiegand RFID card reader(all 4 pin addresses, card data, reader functionality)
 
 import machine
-from ili934xnew import ILI9341, color565
+from I2C_Scanner_V_1_1.display.ili934xnew import ILI9341, color565
 from machine import Pin, SPI, UART
-import m5stack
-from eeprom import EEPROM
-import glcdfont
+import I2C_Scanner_V_1_1.tools.m5stack as m5stack
+from I2C_Scanner_V_1_1.tools.eeprom import EEPROM
+import I2C_Scanner_V_1_1.display.glcdfont as glcdfont
 from micropython import const
-import tt14
-import tt24
+import I2C_Scanner_V_1_1.display.tt14 as tt14
+import I2C_Scanner_V_1_1.display.tt24 as tt24
 import random
-import tt32
+import I2C_Scanner_V_1_1.display.tt32 as tt32
 import os
 import utime
 import sys
-from MSG import MSG
-from Wiegand import Wiegand
+from I2C_Scanner_V_1_1.tools.MSG import MSG
+from I2C_Scanner_V_1_1.tools.Wiegand import Wiegand
 from ComponentTests import ComponentTests
 
 
@@ -82,7 +82,7 @@ def TestSuccess():
 
         if CT.i2c_devices[0][2]=="True" and CT.i2c_devices[1][2]=="True":
 
-            if '* ConUnit communication: Write OK' in CT.results_list  and RFID_res==['1.','2.','3.','4.']:
+            if '* ConUnit communication: Write OK' in CT.results_list  and CT.rfid_res==['1.','2.','3.','4.']:
                 return True
             
         return False
@@ -98,7 +98,6 @@ def TestSuccess():
 def scan_i2c():#The main scanner function
     devices = CT.i2c.scan()
     x=0
-    y=60
 
     if devices:#If there are I2C hardware used
         newFrame(0)
@@ -307,8 +306,8 @@ def TestResults():
 
                 if TestSuccess():
                     #Checks the status of all of the hardware, if every hardware is found and tested successfully
-                    y = 60
-                    i=0
+                    col = 60
+
                     for i, stat in enumerate(CT.results_list):
                         i+=1
 
@@ -324,9 +323,9 @@ def TestResults():
 
                         if (i < 7 and CT.used_device=="ATmega") or CT.used_device=="I2C":
 
-                            CT.display.fill_rectangle(20 , y+15, 200, 2, 000033)
+                            CT.display.fill_rectangle(20 , col+15, 200, 2, 000033)
 
-                        y+=25
+                        col+=25
 
                         CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
@@ -340,13 +339,12 @@ def TestResults():
                     print("The I2C scanner test was successful!")
                 else:#If the hardware status isn't successful
 
-                    y=60
+                    col=60
 
                     for i, stat in enumerate(CT.results_list):
-
                         i=i+1
 
-                        CT.display.set_pos(5, y)
+                        CT.display.set_pos(5, col)
                         CT.display.set_font(tt14)
 
                         if CT.rfid_res != ['1.','2.','3.','4.'] and "readers" in stat:
@@ -361,9 +359,9 @@ def TestResults():
 
                         if (i < 7 and CT.used_device=="ATmega") or CT.used_device=="I2C":
 
-                            CT.display.fill_rectangle(20 , y+15, 200, 2, 000033)
+                            CT.display.fill_rectangle(20 , col+15, 200, 2, 000033)
 
-                        y+=25
+                        col+=25
 
                         CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
