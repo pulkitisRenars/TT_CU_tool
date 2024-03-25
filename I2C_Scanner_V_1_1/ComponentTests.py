@@ -1,19 +1,19 @@
 import machine
-from I2C_Scanner_V_1_1.display.ili934xnew import ILI9341, color565
+from display.ili934xnew import ILI9341, color565
 from machine import Pin, SPI, UART
-import I2C_Scanner_V_1_1.tools.m5stack as m5stack
-from I2C_Scanner_V_1_1.tools.eeprom import EEPROM
-import I2C_Scanner_V_1_1.display.glcdfont as glcdfont
+import tools.m5stack as m5stack
+from tools.eeprom import EEPROM
+import display.glcdfont as glcdfont
 from micropython import const
-import I2C_Scanner_V_1_1.display.tt14 as tt14
-import I2C_Scanner_V_1_1.display.tt24 as tt24
+import display.tt14 as tt14
+import display.tt24 as tt24
 import random
-import I2C_Scanner_V_1_1.display.tt32 as tt32
+import display.tt32 as tt32
 import os
 import utime
 import sys
-from I2C_Scanner_V_1_1.tools.MSG import MSG
-from I2C_Scanner_V_1_1.tools.Wiegand import Wiegand
+from tools.MSG import MSG
+from tools.Wiegand import Wiegand
 
 
 SCR_WIDTH = const(480)
@@ -95,12 +95,13 @@ class ComponentTests:
             self.M.Queue("GET","board_version")
             self.M.Send(True)
             self.M.Receive(True)
-            checkU=self.uartID.read()#Variable used to find out if there is a ControlUnit connected or not
+            checkU=self.uart_id.read()#Variable used to find out if there is a ControlUnit connected or not
             print(checkU)
-            return checkU
-        except:
+        except Exception as error:
             checkU = None
-            return checkU
+            print(error)
+            
+        return checkU
         
 
     def EEPROM_check(self):#EEPROM testing function
@@ -182,7 +183,7 @@ class ComponentTests:
             ATmega=self.M.HWCheck()
         except:
             ATmega = False
-        y+=30
+            
         if ATmega ==True:
             self.results_list.append('* ConUnit communication: Write OK')
             self.results_list.append('* ConUnit communication: Read OK')
@@ -248,41 +249,42 @@ class ComponentTests:
             self.display.print("Wiegand Type(bits):")
 
             while True:
-                if wiegand_reader.available() and loop==0:#Checks if card has been scanned by the RFID card reader
-                    for x in range(2):
+                if wiegand_reader.available():#Checks if card has been scanned by the RFID card reader
+                    
+                    loop+=1
+                    
+                    for x in range(3):
                         led.high()
                         buz.high()
 
-                        utime.sleep(0.4)
+                        utime.sleep(0.3)
 
                         led.low()
                         buz.low()
 
-                        utime.sleep(0.4)
+                    utime.sleep(0.4)
 
-                    if loop==0:
-                        loop=1
-
-                        card_code = wiegand_reader.GetCode()# Gets the card code
-                        self.display.set_pos(10, 160)
-                        self.display.print("RFID Card Data:" + str(card_code))
+                    card_code = wiegand_reader.GetCode()# Gets the card code
+                    self.display.set_pos(10, 160)
+                    self.display.print("RFID Card Data:" + str(card_code))
 
 
-                        card_revCode=wiegand_reader.GetRevCode()
-                        self.display.set_pos(10, 190)
-                        self.display.print("Wiegand Card Data(rev):" + str(card_revCode))                        
+                    card_revCode=wiegand_reader.GetRevCode()
+                    self.display.set_pos(10, 190)
+                    self.display.print("Wiegand Card Data(rev):" + str(card_revCode))                        
 
-                        card_type = wiegand_reader.GetType()# Gets the RFID bit type
-                        self.display.set_pos(10, 220)
-                        self.display.print("Wiegand Type(bits):" + str(card_type))
+                    card_type = wiegand_reader.GetType()# Gets the RFID bit type
+                    self.display.set_pos(10, 220)
+                    self.display.print("Wiegand Type(bits):" + str(card_type))
+                    
+                    if loop == 1:
 
                         self.rfid_res.append(str(i+1)+'.')#Puts the RFID card reader functionality status
 
-                button_pressed = self.button.value() == 0  # Check if the button is pressed
+                button_pressed = self.main_button.value() == 0  # Check if the button is pressed
 
                 if button_pressed:
-                    loop=0
-
+                    loop = 0
                     break
 
         if self.rfid_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
@@ -291,7 +293,7 @@ class ComponentTests:
 
         elif self.rfid_res != []:#If there are working card readers it puts in the status array information for results showcase
 
-            self.results_list.append('* '+len(self.rfid_res)+' Wiegand readers work')
+            self.results_list.append('* '+str(len(self.rfid_res))+' Wiegand readers work')
 
 
 

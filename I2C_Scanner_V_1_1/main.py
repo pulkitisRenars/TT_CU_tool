@@ -1,26 +1,27 @@
+main.py
 #I2C and ControlUnit scanner tool meant for testing TTunits and ControlUnits. The tool tests I2C devices(Real-Time-Clock, EEPROM, Buzzer),
 #also the ControlUnit(connected relays, Alarm state), Wiegand RFID card reader(all 4 pin addresses, card data, reader functionality)
 
 import machine
-from I2C_Scanner_V_1_1.display.ili934xnew import ILI9341, color565
+from display.ili934xnew import ILI9341, color565
 from machine import Pin, SPI, UART
-import I2C_Scanner_V_1_1.tools.m5stack as m5stack
-from I2C_Scanner_V_1_1.tools.eeprom import EEPROM
-import I2C_Scanner_V_1_1.display.glcdfont as glcdfont
+import tools.m5stack as m5stack
+from tools.eeprom import EEPROM
+import display.glcdfont as glcdfont
 from micropython import const
-import I2C_Scanner_V_1_1.display.tt14 as tt14
-import I2C_Scanner_V_1_1.display.tt24 as tt24
+import display.tt14 as tt14
+import display.tt24 as tt24
 import random
-import I2C_Scanner_V_1_1.display.tt32 as tt32
+import display.tt32 as tt32
 import os
 import utime
 import sys
-from I2C_Scanner_V_1_1.tools.MSG import MSG
-from I2C_Scanner_V_1_1.tools.Wiegand import Wiegand
+from tools.MSG import MSG
+from tools.Wiegand import Wiegand
 from ComponentTests import ComponentTests
 
 
-def newFrame():#Function for a new frame on the LCD display
+def newFrame(page):#Function for a new frame on the LCD display
     device=CT.i2c.scan()
 
     CT.display.erase()
@@ -64,11 +65,11 @@ def newFrame():#Function for a new frame on the LCD display
     CT.display.set_font(tt14)
     CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
-    if CT.page != 0 and CT.page != "res":#If there are any test numbers set it sets to needed test number
+    if page != 0 and page != "res":#If there are any test numbers set it sets to needed test number
         CT.display.set_pos(10, 300)
         CT.display.write(str(CT.page)+". test")
 
-    elif CT.page == "res":#If there is given a result signal it will set it as Results on frame
+    elif page == "res":#If there is given a result signal it will set it as Results on frame
         CT.display.set_pos(10, 300)
         CT.display.write("Results")
 
@@ -182,9 +183,13 @@ def scan_i2c():#The main scanner function
 
                             CT.page=3
                             CT.ATmega_check()#Runs the ATmega_check function, y is used for the storing of the display location
+                            
+                            CT.display.set_pos(130, 10)
+                            CT.display.set_font(tt14)
+                            CT.display.write("TEST RELAYS---->")
 
                             while True:
-                                button_pressed = CT.button.value() == 0  # Check if the button is pressed
+                                button_pressed = CT.main_button.value() == 0  # Check if the button is pressed
                                 if button_pressed:
 
                                     CT.page = 4
@@ -197,7 +202,8 @@ def scan_i2c():#The main scanner function
 
 
                         utime.sleep(0.3)
-                        if check_uart is not None and check_uart!=b'\x00':
+                        print(check_uart, device)
+                        if check_uart is not None and check_uart !=b'\x00':
 
                             CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
                             CT.display.set_pos(170, 10)
@@ -206,7 +212,7 @@ def scan_i2c():#The main scanner function
 
                             CT.display.set_pos(10, 265)
                             CT.display.print('Alarm to confirm scan results')
-
+                        
                         elif check_uart==b'\x00' and device != []:
 
                             CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
@@ -252,7 +258,7 @@ def scan_i2c():#The main scanner function
 
 def TestResults():
     if CT.used_device != None:
-
+        print("inside results")
         while True:
             if CT.main_button.value() == 0:
 
@@ -273,6 +279,8 @@ def TestResults():
 
                     CT.M.Queue("SET","alarm_on_state",value=0)
                     CT.M.Send(True)
+                    
+                    break
 
                 elif check_uart==b'\x00':#If a TTunit is connected
 
@@ -291,12 +299,10 @@ def TestResults():
 
                         CT.TT_buzzer.off()
                         utime.sleep(0.1)
-            elif CT.main_button.value() == 1:
+                        
+                    break
 
-                break    
-
-        while True:
-            if CT.main_button.value() == 0:      
+        while True:     
 
                 newFrame("res")
 
@@ -311,7 +317,7 @@ def TestResults():
                     for i, stat in enumerate(CT.results_list):
                         i+=1
 
-                        CT.display.set_pos(5, y)
+                        CT.display.set_pos(5, col)
                         CT.display.set_font(tt14)
 
                         if "ERR" in stat or "ERROR" in stat:
@@ -337,6 +343,8 @@ def TestResults():
                     CT.display.write("Test successful!")
 
                     print("The I2C scanner test was successful!")
+                    
+                    break
                 else:#If the hardware status isn't successful
 
                     col=60
@@ -371,8 +379,11 @@ def TestResults():
                     CT.display.set_font(tt24)
                     CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
                     CT.display.write("Test unsuccessful!")
+                    
+                    break
 
-                    print("The I2C scanner test was unsuccessful!")
+    else:
+        print("not inside results")
     
 newFrame(0)#The first starting frame
 
@@ -387,7 +398,7 @@ CT.display.set_font(tt14)
 CT.display.write("PRESS---->")
 
 while True:#If button is pressed restarts the main scanner function
-    if CT.main_button.value() == 1:
+    if CT.main_button.value() == 0:
         print("Test starting")
 
         CT.ResetForTest()
@@ -395,4 +406,3 @@ while True:#If button is pressed restarts the main scanner function
         scan_i2c()
 
         TestResults()
-
