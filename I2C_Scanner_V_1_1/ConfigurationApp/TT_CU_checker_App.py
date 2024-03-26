@@ -3,6 +3,9 @@ from tkinter import *
 from PIL import ImageTk, Image  
 import json
 
+import serial
+import asyncio
+
 def center(win):
     win.update_idletasks()
     width = win.winfo_width()
@@ -15,7 +18,19 @@ def center(win):
     y = win.winfo_screenheight() // 2 - win_height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
     win.deiconify()
+    
+started = None
 
+async def Run():
+    global started
+    Window = ConfigTTCUChecker()
+    while True:
+        if started == None:
+            Window = ConfigTTCUChecker()
+            Window.CreateWindow()
+            started = True
+        await Window.check_serial_connection()
+            
 class ConfigTTCUChecker:
     global center
 
@@ -25,23 +40,38 @@ class ConfigTTCUChecker:
         self.GetConf()
     
         self.root =  Tk()
-        self.root.option_add('*Font', 'Arial 12')  # Change font if necessary
-        self.root.option_add('*TkDefaultFont', 'Arial 12')  # Change font if necessary
-        self.root.option_add('*Dialog.msg.font', 'Arial 12')  # Change font if necessary
+        self.root.option_add('*Font', 'Arial 12')
+        self.root.option_add('*TkDefaultFont', 'Arial 12')
+        self.root.option_add('*Dialog.msg.font', 'Arial 12') 
 
         self.root.resizable(0, 0)
-        self.root.minsize(1280, 720) # Pievieno minimālās un maksimālās vērtības logam
+        self.root.minsize(1280, 720)
         self.root.maxsize(1920, 1080)
         self.root.geometry('1280x720')
-        self.root.configure(bg="#eee") # Pievieno logam aizmugures krāsu
+        self.root.configure(bg="#fff")
 
-        center(self.root)# Funkcijas palaišana, lai iecentrētu programmatūru ekrāna vidū
+        center(self.root)
 
         self.current_language = "english"
+        self.started = None
+                
+    
+    async def check_serial_connection():
+        while True:
+            try:
+                ser = serial.Serial('com13', baudrate=9600, timeout=1)
+                if ser.isOpen():
+                    print("Serial connection to COM13 is established.")
+                    # You can perform any action here when the connection is established
+                    ser.close()  # Close the serial connection after checking
+            except serial.SerialException as e:
+                print("Serial Exception:", e)
+            
+            await asyncio.sleep(1)  # Wait for 1 second before checking again
 
     def GetConf(self):
-                # Load the JSON data from file
-        with open('ConfigurationApp/conf.json', encoding='utf-8') as f:
+                
+        with open('I2C_Scanner_V_1_1\ConfigurationApp\conf.json', encoding='utf-8') as f:
             self.language = json.load(f)
 
     def HandleClick(self):
@@ -57,6 +87,7 @@ class ConfigTTCUChecker:
         self.CreateWindow()
 
     def CreateWindow(self):
+        self.started = True
 
         self.clicked_history = False
         self.clicked_config = False
@@ -65,14 +96,14 @@ class ConfigTTCUChecker:
 
         self.content_box = Frame(self.root, width=1300, height=600)
 
-        image = Image.open("ConfigurationApp\images\otradi copy.tif")
+        image = Image.open("I2C_Scanner_V_1_1\ConfigurationApp\images\otradi copy.tif")
         image = image.resize((800, 400))
 
         self.image = ImageTk.PhotoImage(image)
-        self.home_image = Label(self.content_box, image=self.image, width=800, height=500)
+        self.home_image = Label(self.content_box, image=self.image, width=800, height=500, anchor=CENTER, bg="#fff")
         self.home_image.image = self.image
 
-        self.home_image.place(x=20, y=20)
+        self.home_image.pack()
 
         self.history_box = Frame()
         self.configure_box = Frame()
@@ -94,7 +125,7 @@ class ConfigTTCUChecker:
 
         self.configure_button = Button(self.navbar, text=self.language[self.current_language][0]["configure"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command=self.LoadConfigure).place(x=550, y=45)
 
-        self.language_button = Button(self.navbar, text=self.language[self.current_language][0]["language"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command= self.HandleClick).place(x=1150, y=45)
+        self.language_button = Button(self.navbar, text=self.language[self.current_language][0]["language"], font=('MS Sans Serif', 12, 'bold'), padx=5, pady=5, command= self.HandleClick).place(x=1180, y=45)
         self.navbar.pack(side=TOP)
 
     def LoadHistory(self):
@@ -105,6 +136,7 @@ class ConfigTTCUChecker:
         self.clicked_history = True
         
         self.configure_box.destroy()
+        self.home_image.destroy()
         
         self.history_box = Frame(self.content_box, width=1300, height=600,)
 
@@ -129,6 +161,7 @@ class ConfigTTCUChecker:
         self.clicked_config = True
         
         self.history_box.destroy()
+        self.home_image.destroy()
 
         self.configure_box = Frame(self.content_box, width=1200, height=500, bd=2, relief=SOLID)
         self.configure_box.place(x=30, y=5)
@@ -137,6 +170,4 @@ class ConfigTTCUChecker:
 
         self.clicked_history = False
 
-
-Window = ConfigTTCUChecker()
-Window.CreateWindow()
+asyncio.run(Run())
