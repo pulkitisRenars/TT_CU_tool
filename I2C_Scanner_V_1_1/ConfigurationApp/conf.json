@@ -1,0 +1,23 @@
+{
+    "english": [{
+        "title": "TT/CU checker configuration",
+        "history": "History",
+        "history_tt_label": "TTunit test history",
+        "history_cu_label": "ControlUnit test history",
+        "history_delete_button": "Delete history",
+        "configure": "Configure",
+        "configure_label": "TT/CU Checker configuration section",
+        "language": "English" 
+        }],
+
+    "latvian": [{
+        "title": "TT/CU checker konfigurācija",
+        "history": "Vēsture",
+        "history_tt_label": "TTunit pārbaudes vēsture",
+        "history_cu_label": "ControlUnit pārbaudes vēsture",
+        "history_delete_button": "Izdzēst vēsturi",
+        "configure": "Konfigurēt",
+        "configure_label": "TT/CU Checker konfigurācijas sadaļa",
+        "language": "Latviešu"
+    }]
+}
