@@ -3,8 +3,7 @@ from tkinter import *
 from PIL import ImageTk, Image  
 import json
 
-import serial
-import asyncio
+from serial import Serial
 
 def center(win):
     win.update_idletasks()
@@ -18,19 +17,7 @@ def center(win):
     y = win.winfo_screenheight() // 2 - win_height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
     win.deiconify()
-    
-started = None
 
-async def Run():
-    global started
-    Window = ConfigTTCUChecker()
-    while True:
-        if started == None:
-            Window = ConfigTTCUChecker()
-            Window.CreateWindow()
-            started = True
-        await Window.check_serial_connection()
-            
 class ConfigTTCUChecker:
     global center
 
@@ -40,37 +27,23 @@ class ConfigTTCUChecker:
         self.GetConf()
     
         self.root =  Tk()
-        self.root.option_add('*Font', 'Arial 12')
-        self.root.option_add('*TkDefaultFont', 'Arial 12')
-        self.root.option_add('*Dialog.msg.font', 'Arial 12') 
+        self.root.option_add('*Font', 'Arial 12')  # Change font if necessary
+        self.root.option_add('*TkDefaultFont', 'Arial 12')  # Change font if necessary
+        self.root.option_add('*Dialog.msg.font', 'Arial 12')  # Change font if necessary
 
         self.root.resizable(0, 0)
-        self.root.minsize(1280, 720)
+        self.root.minsize(1280, 720) # Pievieno minimālās un maksimālās vērtības logam
         self.root.maxsize(1920, 1080)
         self.root.geometry('1280x720')
-        self.root.configure(bg="#fff")
-
-        center(self.root)
+        self.root.configure(bg="#fff") # Pievieno logam aizmugures krāsu
+        
+        self.com_port = "COM1"
+        center(self.root)# Funkcijas palaišana, lai iecentrētu programmatūru ekrāna vidū
 
         self.current_language = "english"
-        self.started = None
-                
-    
-    async def check_serial_connection():
-        while True:
-            try:
-                ser = serial.Serial('com13', baudrate=9600, timeout=1)
-                if ser.isOpen():
-                    print("Serial connection to COM13 is established.")
-                    # You can perform any action here when the connection is established
-                    ser.close()  # Close the serial connection after checking
-            except serial.SerialException as e:
-                print("Serial Exception:", e)
-            
-            await asyncio.sleep(1)  # Wait for 1 second before checking again
 
     def GetConf(self):
-                
+                # Load the JSON data from file
         with open('I2C_Scanner_V_1_1\ConfigurationApp\conf.json', encoding='utf-8') as f:
             self.language = json.load(f)
 
@@ -86,8 +59,29 @@ class ConfigTTCUChecker:
         self.content_box.destroy()
         self.CreateWindow()
 
+    def CheckDevice(self):
+
+        self.device_port_value = self.device_port.get()
+
+        # Check if the value is a number in the range 1-256
+        if self.device_port_value.isdigit() and 1 <= int(self.device_port_value) <= 256:
+            self.device_port_value = "COM" + self.device_port_value
+
+        # Check if the value starts with "COM" and has a number in the range 1-256
+        elif self.device_port_value.startswith("COM") and self.device_port_value[3:].isdigit() and 1 <= int(self.device_port_value[3:]) <= 256:
+            pass  # Value is already in the correct format
+
+        # Check if the value starts with "com" and has a number in the range 1-256
+        elif self.device_port_value.startswith("com") and self.device_port_value[3:].isdigit() and 1 <= int(self.device_port_value[3:]) <= 256:
+            self.device_port_value = "COM" + self.device_port_value[3:].upper()  # Convert to uppercase and prepend "COM"
+            
+        else:
+            print("Invalid device COM port:", self.device_port_value)
+            return  # Return if the value doesn't match any of the conditions
+    
+        print("Modified device COM port:", self.device_port_value)
+
     def CreateWindow(self):
-        self.started = True
 
         self.clicked_history = False
         self.clicked_config = False
@@ -125,18 +119,26 @@ class ConfigTTCUChecker:
 
         self.configure_button = Button(self.navbar, text=self.language[self.current_language][0]["configure"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command=self.LoadConfigure).place(x=550, y=45)
 
-        self.language_button = Button(self.navbar, text=self.language[self.current_language][0]["language"], font=('MS Sans Serif', 12, 'bold'), padx=5, pady=5, command= self.HandleClick).place(x=1180, y=45)
+        self.language_button = Button(self.navbar, text=self.language[self.current_language][0]["language"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command= self.HandleClick).place(x=1150, y=45)
+
+        self.check_device = Button(self.navbar, text=self.language[self.current_language][0]["check_device"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command= self.CheckDevice).place(x=900, y=45)
+
+        Label(self.navbar, text = self.language[self.current_language][0]["device_com_port"], font=('MS Sans Serif', 12, 'bold'), bg="green").place(x=800, y=110)
+        self.device_port = Entry(self.navbar)
+        self.device_port.place(x=950, y= 110)
         self.navbar.pack(side=TOP)
 
     def LoadHistory(self):
-
         if self.clicked_history:
             return
-        
+            
         self.clicked_history = True
         
         self.configure_box.destroy()
-        self.home_image.destroy()
+        if hasattr(self, 'home_image') and self.home_image:
+            self.home_image.destroy()
+        else:
+            self.CreateWindow()
         
         self.history_box = Frame(self.content_box, width=1300, height=600,)
 
@@ -154,14 +156,16 @@ class ConfigTTCUChecker:
         self.clicked_config = False
 
     def LoadConfigure(self):
-
         if self.clicked_config:
             return
-        
+            
         self.clicked_config = True
         
         self.history_box.destroy()
-        self.home_image.destroy()
+        if hasattr(self, 'home_image') and self.home_image:
+            self.home_image.destroy()
+        else:
+            self.CreateWindow()
 
         self.configure_box = Frame(self.content_box, width=1200, height=500, bd=2, relief=SOLID)
         self.configure_box.place(x=30, y=5)
@@ -170,4 +174,6 @@ class ConfigTTCUChecker:
 
         self.clicked_history = False
 
-asyncio.run(Run())
+
+Window = ConfigTTCUChecker()
+Window.CreateWindow()

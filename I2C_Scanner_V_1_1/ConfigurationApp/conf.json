@@ -7,6 +7,8 @@
         "history_delete_button": "Delete history",
         "configure": "Configure",
         "configure_label": "TT/CU Checker configuration section",
+        "check_device": "Device connection",
+        "device_com_port": "Device COM port",
         "language": "English" 
         }],
 
@@ -18,6 +20,8 @@
         "history_delete_button": "Izdzēst vēsturi",
         "configure": "Konfigurēt",
         "configure_label": "TT/CU Checker konfigurācijas sadaļa",
+        "check_device": "Ierīces savienojums",
+        "device_com_port": "Ierīces COM port",
         "language": "Latviešu"
     }]
 }
