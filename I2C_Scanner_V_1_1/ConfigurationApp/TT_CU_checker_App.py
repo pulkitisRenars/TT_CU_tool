@@ -4,6 +4,7 @@ from PIL import ImageTk, Image
 import json
 
 from serial import Serial
+import time
 
 def center(win):
     win.update_idletasks()
@@ -17,6 +18,22 @@ def center(win):
     y = win.winfo_screenheight() // 2 - win_height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
     win.deiconify()
+
+def SendConfirmation(device_port):
+    try:
+        ser = Serial(device_port, 9600)
+        serial_init = True
+    except Exception as e:
+        print("Error with connection:", e)
+        return False
+    
+    time.sleep(1)
+
+    if serial_init:
+        ser.write(b"send hello world from pc\n")
+        return True
+    else:
+        return False
 
 class ConfigTTCUChecker:
     global center
@@ -60,6 +77,7 @@ class ConfigTTCUChecker:
         self.CreateWindow()
 
     def CheckDevice(self):
+        serial_init = False
 
         self.device_port_value = self.device_port.get()
 
@@ -78,8 +96,36 @@ class ConfigTTCUChecker:
         else:
             print("Invalid device COM port:", self.device_port_value)
             return  # Return if the value doesn't match any of the conditions
-    
-        print("Modified device COM port:", self.device_port_value)
+
+        # Open the file in write mode to clear its contents before appending
+        with open("results.txt", "w") as f:
+            pass
+
+        if SendConfirmation(self.device_port_value):
+
+            try:
+                ser = Serial(self.device_port_value, 9600)
+                serial_init = True
+            except Exception as e:
+                print("Error with connection:", e)
+                serial_init = False
+
+            time.sleep(1)
+
+            if serial_init:
+                with open("results.txt", "a") as f:
+                    while True:
+                        data = ser.readline().strip()  # Remove leading/trailing whitespace and newline characters
+                        if data:
+                            data_str = data.decode()  # Decode bytes to string
+                            if "END" not in data_str:
+                                f.write(data_str + "\n")  # Write data to file
+                                print(data_str)
+                            else:
+                                print("Received 'END'. Closing file.")
+                                break
+
+
 
     def CreateWindow(self):
 
