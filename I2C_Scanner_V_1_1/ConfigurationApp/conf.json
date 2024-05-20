@@ -4,12 +4,23 @@
         "history": "History",
         "history_tt_label": "TTunit test history",
         "history_cu_label": "ControlUnit test history",
-        "history_delete_button": "Delete history",
+        "history_delete_button": "Delete device history",
         "configure": "Configure",
         "configure_label": "TT/CU Checker configuration section",
+        "configure_language": "Change TT/CU checker display language: ",
+        "configure_english_language": "English",
+        "configure_latvian_language": "Latvian",
+        "changed_language_message": "The TT/CU checker display language has been changed to: ",
         "check_device": "Device connection",
         "device_com_port": "Device COM port",
-        "language": "English" 
+        "failed_device_connection": "No connection",
+        "device_connected": "Connected",
+        "language": "English",
+        "deleted_history_title": "TT/CU checker test history deletion",
+        "deleted_history_message": "TT/CU checker testing history is now deleted from the device and is not recoverable!",
+        "no_connection": "The serial port (COM port) can't connect to the configuration app!",
+        "incorrect_com": "Invalid serial (COM) port format. Try again!",
+        "submit_button": "Submit"
         }],
 
     "latvian": [{
@@ -17,11 +28,22 @@
         "history": "Vēsture",
         "history_tt_label": "TTunit pārbaudes vēsture",
         "history_cu_label": "ControlUnit pārbaudes vēsture",
-        "history_delete_button": "Izdzēst vēsturi",
+        "history_delete_button": "Izdzēst ierīces vēsturi",
         "configure": "Konfigurēt",
         "configure_label": "TT/CU Checker konfigurācijas sadaļa",
+        "configure_language": "Pārmaini TT/CU checker displeja valodu: ",
+        "configure_english_language": "Angļu",
+        "configure_latvian_language": "Latviešu",
+        "changed_language_message": "TT/CU checker displeja valoda ir pārmainīta uz: ",
         "check_device": "Ierīces savienojums",
         "device_com_port": "Ierīces COM port",
-        "language": "Latviešu"
+        "failed_device_connection": "Nav savienojums",
+        "device_connected": "Savienots",
+        "language": "Latviešu",
+        "deleted_history_title": "TT/CU checker pārbaudes vēstures dzēšana",
+        "deleted_history_message": "TT/CU checker pārbaudes vēsture tiek izdzēsta no ierīces un nav atgriežama!",
+        "no_connection": "Seriālais ports (COM port) nespēj savienoties ar konfigurācijas aplikāciju!",
+        "incorrect_com": "Nederīgs seriālais (COM) porta formāts. Mēģini vēlreiz!",
+        "submit_button": "Apstiprināt"
     }]
 }
