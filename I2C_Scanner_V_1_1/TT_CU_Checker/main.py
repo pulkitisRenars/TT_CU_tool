@@ -15,10 +15,17 @@ import random
 import display.tt32 as tt32
 import os
 import utime
+import json
 import sys
 from tools.MSG import MSG
 from tools.Wiegand import Wiegand
 from ComponentTests import ComponentTests
+
+
+def AddToHistory(data):
+    CT.history_conf["history"].append(data)
+    with open('/hist_conf.json', 'w') as file:
+        json.dump(CT.history_conf, file)
 
 
 def newFrame(page):#Function for a new frame on the LCD display
@@ -43,12 +50,19 @@ def newFrame(page):#Function for a new frame on the LCD display
 
         CT.display.write("TTunit")
 
-    elif device == []:#If there aren't any devices connected to RPi
+    elif device == [] and page != "pc":#If there aren't any devices connected to RPi
         CT.display.set_pos(130, 285)
         CT.display.set_font(tt24)
         CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
-        CT.display.write("No device")
+        CT.display.write(CT.language_dict[CT.current_language][0]["no_device"])
+
+    if page == "pc":
+        CT.display.set_pos(130, 285)
+        CT.display.set_font(tt24)
+        CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
+
+        CT.display.write(CT.language_dict[CT.current_language][0]["pc_connected"])
 
     CT.display.fill_rectangle(10 , 16, 85, 30, 111111)
     CT.display.fill_rectangle(5 , 11, 85, 30, 65535)
@@ -67,11 +81,11 @@ def newFrame(page):#Function for a new frame on the LCD display
 
     if page != 0 and page != "res":#If there are any test numbers set it sets to needed test number
         CT.display.set_pos(10, 300)
-        CT.display.write(str(CT.page)+". test")
+        CT.display.write(str(CT.page)+CT.language_dict[CT.current_language][0]["test_numbering"])
 
     elif page == "res":#If there is given a result signal it will set it as Results on frame
         CT.display.set_pos(10, 300)
-        CT.display.write("Results")
+        CT.display.write(CT.language_dict[CT.current_language][0]["test_results"])
 
 CT = ComponentTests(newFrame)
 
@@ -79,20 +93,46 @@ check_uart = CT.UartComPreTest()
 check_eeprom = CT.EepromPreTest()
 
 def TestSuccess():
+
+    string_to_send = ""
+
+    for val in CT.results_list_to_send:
+        string_to_send = string_to_send + val 
+
+    string_to_send = string_to_send.rstrip(string_to_send[-1])
+
     if CT.used_device == "ATmega":
 
         if CT.i2c_devices[0][2]=="True" and CT.i2c_devices[1][2]=="True":
 
-            if '* ConUnit communication: Write OK' in CT.results_list  and CT.rfid_res==['1.','2.','3.','4.']:
+            if CT.language_dict[CT.current_language][0]["cu_write_ok"] in CT.results_list  and CT.rfid_res==['1.','2.','3.','4.']:
+
+                string_to_send = "cu-true:"+string_to_send
+
+                AddToHistory(string_to_send)
+
                 return True
             
+        string_to_send = "cu-false:"+string_to_send
+
+        AddToHistory(string_to_send)
+
         return False
 
     elif CT.used_device == "I2C":
 
         if CT.i2c_devices[0][2]=="True" and CT.i2c_devices[1][2]=="True":
+
+            string_to_send = "tt-true:"+string_to_send
+
+            AddToHistory(string_to_send)
+
             return True
         
+        string_to_send = "tt-false:"+string_to_send
+
+        AddToHistory(string_to_send)
+
         return False
 
     
@@ -103,7 +143,7 @@ def scan_i2c():#The main scanner function
     if devices:#If there are I2C hardware used
         newFrame(0)
         CT.display.set_pos(10, 60)
-        CT.display.print('* I2C devices found:')
+        CT.display.print(CT.language_dict[CT.current_language][0]["i2c_devices_found"])
 
         print("Found I2C devices")
 
@@ -123,7 +163,7 @@ def scan_i2c():#The main scanner function
             col = col+10
 
             CT.display.set_pos(10, col)
-            CT.display.print('* ControlUnit device found')
+            CT.display.print(CT.language_dict[CT.current_language][0]["cu_device_found"])
 
             print("Found ControlUnit device")
 
@@ -133,7 +173,7 @@ def scan_i2c():#The main scanner function
             col = col+10
 
             CT.display.set_pos(10, col)
-            CT.display.print('* TTunit device found')
+            CT.display.print(CT.language_dict[CT.current_language][0]["tt_device_found"])
 
             print("Found TTunit device")
 
@@ -150,7 +190,7 @@ def scan_i2c():#The main scanner function
                     col+=30
 
                     CT.display.set_pos(10, col)
-                    CT.display.print('* '+name+' connected')
+                    CT.display.print('* '+name+CT.language_dict[CT.current_language][0]["connected_comp"])
 
                     CT.i2c_devices[x][2]='True'
 
@@ -160,7 +200,7 @@ def scan_i2c():#The main scanner function
 
             col+=30
             CT.display.set_pos(10, col)
-            CT.display.print('* ControlUnit connected')
+            CT.display.print(CT.language_dict[CT.current_language][0]["cu_device_found"])
 
         print(str(x)+" I2C devices were found")
 
@@ -186,7 +226,7 @@ def scan_i2c():#The main scanner function
                             
                             CT.display.set_pos(130, 10)
                             CT.display.set_font(tt14)
-                            CT.display.write("TEST RELAYS---->")
+                            CT.display.write(CT.language_dict[CT.current_language][0]["press_button_r"])
 
                             while True:
                                 button_pressed = CT.main_button.value() == 0  # Check if the button is pressed
@@ -208,20 +248,20 @@ def scan_i2c():#The main scanner function
                             CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
                             CT.display.set_pos(170, 10)
                             CT.display.set_font(tt14)
-                            CT.display.write("ON---------->")
+                            CT.display.write(CT.language_dict[CT.current_language][0]["press_button_o"])
 
                             CT.display.set_pos(10, 265)
-                            CT.display.print('Alarm to confirm scan results')
+                            CT.display.print(CT.language_dict[CT.current_language][0]["alarm_to_confirm"])
                         
                         elif check_uart==b'\x00' and device != []:
 
                             CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
                             CT.display.set_pos(170, 10)
                             CT.display.set_font(tt14)
-                            CT.display.write("Buzz------>")
+                            CT.display.write(CT.language_dict[CT.current_language][0]["press_button_b"])
 
                             CT.display.set_pos(10, 265)
-                            CT.display.print('Buzz to confirm scan results')
+                            CT.display.print(CT.language_dict[CT.current_language][0]["buzz_to_confirm"])
 
         else:#If there isn't any "True" found
           
@@ -233,7 +273,7 @@ def scan_i2c():#The main scanner function
 
                 CT.display.set_pos(0, col)
                 CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
-                CT.display.print('* '+names+' not found.')
+                CT.display.print('* '+names+CT.language_dict[CT.current_language][0]["not_found"])
 
                 print("The scanner didn't find "+names+" device")
 
@@ -246,15 +286,17 @@ def scan_i2c():#The main scanner function
 
         CT.display.set_pos(10, 60)
         CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
-        CT.display.print('* I2C devices not found.')
+        CT.display.print(CT.language_dict[CT.current_language][0]["i2c_devices_not_found"])
 
         print("There weren't any I2C devices found")
 
         if check_eeprom == False:
             CT.display.set_pos(10, 90)
-            CT.display.print('* Likely a problem with EEPROM.')
+            CT.display.print(CT.language_dict[CT.current_language][0]["problem_eeprom"])
 
         CT.used_device = None
+
+        CT.SendRecieveData()
 
 def TestResults():
     if CT.used_device != None:
@@ -268,7 +310,7 @@ def TestResults():
 
                     CT.display.set_pos(10, 60)
                     CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-                    CT.display.print("Alarming")
+                    CT.display.print(CT.language_dict[CT.current_language][0]["alarming"])
 
                     print("Buzzing!")
 
@@ -286,7 +328,7 @@ def TestResults():
 
                     CT.display.set_pos(10, 60)
                     CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-                    CT.display.print("Buzzing")
+                    CT.display.print(CT.language_dict[CT.current_language][0]["buzzing"])
 
                     CT.display.set_pos(170, 10)
                     CT.display.set_font(tt14)
@@ -308,7 +350,7 @@ def TestResults():
 
                 CT.display.set_pos(160, 10)
                 CT.display.set_font(tt14)
-                CT.display.write("RESTART---->")
+                CT.display.write(CT.language_dict[CT.current_language][0]["restart_button"])
 
                 if TestSuccess():
                     #Checks the status of all of the hardware, if every hardware is found and tested successfully
@@ -340,7 +382,7 @@ def TestResults():
                     CT.display.set_pos(30, 250)
                     CT.display.set_font(tt24)
                     CT.display.set_color(color565(0, 255, 0), color565(255, 255, 255))
-                    CT.display.write("Test successful!")
+                    CT.display.write(CT.language_dict[CT.current_language][0]["test_successful"])
 
                     print("The I2C scanner test was successful!")
                     
@@ -378,7 +420,7 @@ def TestResults():
                     CT.display.set_pos(30, 250)
                     CT.display.set_font(tt24)
                     CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
-                    CT.display.write("Test unsuccessful!")
+                    CT.display.write(CT.language_dict[CT.current_language][0]["test_unsuccessful"])
                     
                     break
 
@@ -391,11 +433,11 @@ print("Starting program")
 
 CT.display.set_pos(10, 60)
 CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-CT.display.print("* To Start press button")
+CT.display.print(CT.language_dict[CT.current_language][0]["main_start"])
 
 CT.display.set_pos(170, 10)
 CT.display.set_font(tt14)
-CT.display.write("PRESS---->")
+CT.display.write(CT.language_dict[CT.current_language][0]["press_button"])
 
 while True:#If button is pressed restarts the main scanner function
     if CT.main_button.value() == 0:

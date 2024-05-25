@@ -76,8 +76,11 @@ def ParseHistoryData(data):
                 for i in range(tt_count):
 
                     if len(history_array["ttunit"][i]) < 3:
-                        history_array["ttunit"][i][key] = value
-                        break
+
+                        if key not in history_array["ttunit"][i]:
+
+                            history_array["ttunit"][i][key] = value
+                            break
 
         elif data_item[0:2] == "cu":
 
@@ -112,7 +115,7 @@ class ConfigTTCUChecker:
         self.root.geometry('1280x720')
         self.root.configure(bg="#fff")
         
-        self.device_port_value = "COM1"
+        self.device_port_value = ""
         self.device_connected = False
         self.tt_cu_history = {}
 
@@ -143,6 +146,7 @@ class ConfigTTCUChecker:
         if self.device_connected:
             if SendToDevice(self.device_port_value, "delete") == b'deleted':
                 messagebox.showwarning(self.language[self.current_language][0]["deleted_history_title"], self.language[self.current_language][0]["deleted_history_message"])
+                self.CheckDevice()
 
     def ConfigureHandler(self):
         if self.device_connected:
@@ -153,11 +157,13 @@ class ConfigTTCUChecker:
                 res = SendToDevice(self.device_port_value, "eng")
 
             if res == b'lat_configured' or res == b'eng_configured':
-                    messagebox.showwarning("Warning!", self.language[self.current_language][0]["changed_language_message"]+self.language_option_val.get())
+                messagebox.showwarning("Warning!", self.language[self.current_language][0]["changed_language_message"]+self.language_option_val.get())
+                self.CheckDevice()
 
     def CheckDevice(self):
         serial_init = True
-        self.device_port_value = self.device_port.get()
+        if self.device_connected == False:
+            self.device_port_value = self.device_port.get()
 
         if self.device_port_value.isdigit() and 1 <= int(self.device_port_value) <= 256:
             self.device_port_value = "COM" + self.device_port_value
@@ -192,6 +198,7 @@ class ConfigTTCUChecker:
                     while True:
 
                         data = ser.readline().strip()  # Remove leading/trailing whitespace and newline characters
+
                         if data:
                             data_str = data.decode()  # Decode bytes to string
 
@@ -331,7 +338,7 @@ class ConfigTTCUChecker:
         Label(self.history_box, text=self.language[self.current_language][0]["history_cu_label"], font=('MS Sans Serif', 16, 'bold'), bg="#fff").place(x=455, y=10)
         self.controlunit_box.place(x=450, y=50)
 
-        Button(self.history_box, text=self.language[self.current_language][0]["history_delete_button"], command= self.DeleteHistoryHandler, bg="#fff").place(x=1150, y=25)
+        Button(self.history_box, text=self.language[self.current_language][0]["history_delete_button"], command= self.DeleteHistoryHandler, bg="#fff").place(x=1110, y=25)
 
         headers = ["N.", "Status", "EEPROM", "RTC"]
         for i in range(4):
@@ -343,24 +350,30 @@ class ConfigTTCUChecker:
 
                 text_array = []
 
-                if value["tt"] == 'true':
-                    text_array.append("✔")
-                elif value["tt"] == 'false':
-                    text_array.append("X")
+                key_list = value.keys()
+
+                if "tt" in key_list:
+                    if value["tt"] == 'true':
+                        text_array.append("✔")
+                    elif value["tt"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
 
-                if value["ee"] == 'true':
-                    text_array.append("✔")
-                elif value["ee"] == 'false':
-                    text_array.append("X")
+
+                if "ee" in key_list:
+                    if value["ee"] == 'true':
+                        text_array.append("✔")
+                    elif value["ee"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
-                
-                if value["rtc"] == 'true':
-                    text_array.append("✔")
-                elif value["rtc"] == 'false':
-                    text_array.append("X")
+              
+                if "rtc" in key_list:  
+                    if value["rtc"] == 'true':
+                        text_array.append("✔")
+                    elif value["rtc"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")   
 
@@ -382,61 +395,71 @@ class ConfigTTCUChecker:
 
             for key, value in self.tt_cu_history['controlunit'].items():
 
+                key_list = value.keys()
+
                 text_array = []
 
-                if value["cu"] == 'true':
-                    text_array.append("✔")
-                elif value["cu"] == 'false':
-                    text_array.append("X")
+                if "cu" in key_list:
+                    if value["cu"] == 'true':
+                        text_array.append("✔")
+                    elif value["cu"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
 
-                if value["ee"] == 'true':
-                    text_array.append("✔")
-                elif value["ee"] == 'false':
-                    text_array.append("X")
+                if "ee" in key_list:
+                    if value["ee"] == 'true':
+                        text_array.append("✔")
+                    elif value["ee"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
                 
-                if value["rtc"] == 'true':
-                    text_array.append("✔")
-                elif value["rtc"] == 'false':
-                    text_array.append("X")
+                if "rtc" in key_list:                
+                    if value["rtc"] == 'true':
+                        text_array.append("✔")
+                    elif value["rtc"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-") 
 
-                if value["com"] == 'true':
-                    text_array.append("✔")
-                elif value["com"] == 'false':
-                    text_array.append("X")
+                if "com" in key_list:
+                    if value["com"] == 'true':
+                        text_array.append("✔")
+                    elif value["com"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
 
-                if value["w1"] == 'true':
-                    text_array.append("✔")
-                elif value["w1"] == 'false':
-                    text_array.append("X")
+                if "w1" in key_list:
+                    if value["w1"] == 'true':
+                        text_array.append("✔")
+                    elif value["w1"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
 
-                if value["w2"] == 'true':
-                    text_array.append("✔")
-                elif value["w2"] == 'false':
-                    text_array.append("X")
+                if "w2" in key_list:
+                    if value["w2"] == 'true':
+                        text_array.append("✔")
+                    elif value["w2"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-") 
 
-                if value["w3"] == 'true':
-                    text_array.append("✔")
-                elif value["w3"] == 'false':
-                    text_array.append("X")
+                if "w3" in key_list:
+                    if value["w3"] == 'true':
+                        text_array.append("✔")
+                    elif value["w3"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")
 
-                if value["w4"] == 'true':
-                    text_array.append("✔")
-                elif value["w4"] == 'false':
-                    text_array.append("X")
+                if "w4" in key_list:
+                    if value["w4"] == 'true':
+                        text_array.append("✔")
+                    elif value["w4"] == 'false':
+                        text_array.append("X")
                 else:
                     text_array.append("-")        
 
@@ -457,8 +480,11 @@ class ConfigTTCUChecker:
 
         self.clicked_history = False
         self.clicked_config = True
-        
+
+        self.configure_box.pack_forget()  
+        self.configure_box.destroy()
         self.history_box.destroy()
+
         if hasattr(self, 'home_image') and self.home_image:
             self.home_image.destroy()
         else:
@@ -470,6 +496,9 @@ class ConfigTTCUChecker:
         Label(self.configure_box, text=self.language[self.current_language][0]["configure_label"], font=('MS Sans Serif', 18, 'bold'), bg="#fff").place(x=20, y= 20)
 
         Label(self.configure_box, text=self.language[self.current_language][0]["configure_language"], font=('MS Sans Serif', 14), bg="#fff").place(x=35, y= 100)
+
+        if self.device_connected:
+            Label(self.configure_box, text=self.language[self.current_language][0]["current_language"]+self.language_option_val.get(), font=('MS Sans Serif', 14), bg="#fff").place(x=900, y= 70)
 
         self.configure_option_menu = OptionMenu(self.configure_box, self.language_option_val, self.language[self.current_language][0]["configure_english_language"], self.language[self.current_language][0]["configure_latvian_language"])
 

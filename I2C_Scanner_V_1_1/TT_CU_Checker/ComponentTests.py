@@ -1,4 +1,6 @@
 import machine
+import json
+import select
 from display.ili934xnew import ILI9341, color565
 from machine import Pin, SPI, UART
 import tools.m5stack as m5stack
@@ -41,6 +43,10 @@ class ComponentTests:
         self.TT_buzzer = Pin(24,Pin.OUT)
         self.page = 0
 
+        self.language_dict = GetLang()
+        self.history_conf = GetConf()
+        self.current_language = self.GetCurrentLang()
+
         self.spi = SPI( 0, baudrate=40000000, miso=Pin(TFT_MISO_PIN), mosi=Pin(TFT_MOSI_PIN), sck=Pin(TFT_CLK_PIN) )
         self.i2c=machine.I2C( 0, sda=sda, scl=scl, freq=400000 )
 
@@ -61,6 +67,7 @@ class ComponentTests:
         self.rtc=machine.RTC()#Real-Time-Clock defining
 
         self.results_list = []
+        self.results_list_to_send= []
 
         self.rtc=machine.RTC()#Real-Time-Clock defining
 
@@ -68,13 +75,84 @@ class ComponentTests:
 
         pass
 
-
     def ResetForTest(self):
 
         self.rfid_res = []
         self.results_list = []
         self.used_device = None
         self.page = 0
+
+    def GetCurrentLang(self):
+        if self.history_conf["language"] == "conf_eng":
+            self.current_language = "english"
+        elif self.history_conf["language"] == "conf_lat":
+            self.current_language = "latvian"
+        else:
+            self.current_language = "english"   
+
+    def SendRecieveData(self):
+
+        poll_obj = select.poll()
+        poll_obj.register(sys.stdin, select.POLLIN)
+
+        while True:
+            while True:
+
+                poll_results = poll_obj.poll(1)
+                if poll_results:
+
+                    data = str(sys.stdin.readline().strip())
+                    
+                    if data == "receive":
+                        print("transfer")
+                        sys.stdout.write("transfer\r")
+                        
+                        for hist in self.history_conf["history"]:
+                            print(hist,"\n")
+                            utime.sleep(0.01)
+                            
+                        print(self.history_conf["language"],"\n")
+
+                        print("END\n")
+
+                        self.NewFrame("pc")
+                        break
+                    
+                    elif data == "delete":
+                        
+                        sys.stdout.write("deleted\r")
+                        self.history_conf["history"] = ["","", "start"]
+                        
+                        with open('/hist_conf.json', 'w') as file:
+                            json.dump(self.history_conf, file)
+                        break
+                    
+                    elif data == "lat":
+                        
+                        sys.stdout.write("lat_configured\r")
+                        
+                        self.history_conf["language"] = "conf-lat"
+                        
+                        with open('/hist_conf.json', 'w') as file:
+                            json.dump(self.history_conf, file)
+                        break
+                    
+                    elif data == "eng":
+                        
+                        self.history_conf["language"] = "conf-eng"
+                        
+                        with open('hist_conf.json', 'w') as file:
+                            json.dump(self.history_conf, file)
+                        
+                        sys.stdout.write("eng_configured\r")
+                        
+                        break
+                        
+                else:
+
+                    continue
+            
+            utime.sleep(0.01)    
 
     def EepromPreTest(self):
         try:
@@ -109,18 +187,20 @@ class ComponentTests:
         random_arr = []
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-        self.display.print('Testing EEPROM')
+        self.display.print(self.language_dict[self.current_language][0]["testing_eeprom"])
         try:
 
             for i in range(256):
                 random_arr.append(RandomString())
                 self.eprom.write(i*64, random_arr[i])
             
-            self.results_list.append('* EEPROM communication: Write OK')
+            self.results_list.append(self.language_dict[self.current_language][0]["eeprom_write_ok"])
+            self.results_list_to_send.append("ee-true:")
             
 
         except:#Finds out if the EEPROM writing works
-            self.results_list.append('* EEPROM communication: Write ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["eeprom_write_er"])
+            self.results_list_to_send.append("ee-false:")
             self.i2c_devices[0][2]='False'
 
         try:
@@ -129,14 +209,31 @@ class ComponentTests:
                 if random_arr[i] not in self.eprom.read(i*64,6):
                     break
             if i == 255:       
-                self.results_list.append('* EEPROM communication: Read OK')
+                self.results_list.append(self.language_dict[self.current_language][0]["eeprom_read_ok"])
+
+                if "ee-false:" not in self.results_list_to_send and "ee-true" not in self.results_list_to_send:
+                    self.results_list_to_send.append("ee-true:")
                 
             else:
-                self.results_list.append('* EEPROM communication: Read ERR')
+                self.results_list.append(self.language_dict[self.current_language][0]["eeprom_read_er"])
+                if "ee-false:" not in self.results_list_to_send:
+
+                    if "ee-true" in self.results_list_to_send:
+                        self.results_list_to_send[0] = "ee-false:"
+                    else:
+                        self.results_list_to_send.append("ee-false:")
+
                 self.i2c_devices[0][2]='False'
 
         except:#Finds out if the EEPROM reading works
-            self.results_list.append('* EEPROM communication: Read ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["eeprom_read_er"])
+            if "ee-false:" not in self.results_list_to_send:
+
+                if "ee-true" in self.results_list_to_send:
+                    self.results_list_to_send[0] = "ee-false:"
+                else:
+                    self.results_list_to_send.append("ee-false:")
+
             self.i2c_devices[0][2]='False'
 
         self.eprom.wipe()
@@ -146,26 +243,39 @@ class ComponentTests:
 
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-        self.display.print('Testing RTC')
+        self.display.print(self.language_dict[self.current_language][0]["testing_rtc"])
 
         oldRtc=self.rtc.datetime()#Variable used to set RTC time to currect time
 
         try:
             self.rtc.datetime((2020, 1, 21, 2, 10, 32, 36, 0))#Writes RTC time
 
-            self.results_list.append('* RTC communication: Write OK')
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_ok"])
+            self.results_list_to_send.append("rtc-true:")
 
         except:#Finds out if the RTC writing works
-            self.results_list.append('* RTC communication: Write ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_er"])
+            self.results_list_to_send.append("rtc-false:")
             self.i2c_devices[1][2]='False'
 
         try:
             if self.rtc.datetime()[0] == 2020 and self.rtc.datetime()[4] == 10:
 
-                self.results_list.append('* RTC communication: Read OK')
+                self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_ok"])
+
+                if "rtc-false:" not in self.results_list_to_send and "rtc-true" not in self.results_list_to_send:
+                    self.results_list_to_send.append("rtc-true:")
 
         except:#Finds out if RTC hardware even works
-            self.results_list.append('* RTC communication: Read ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_er"])
+
+            if "rtc-false:" not in self.results_list_to_send:
+
+                if "rtc-true" in self.results_list_to_send:
+                    self.results_list_to_send[1] = "rtc-false:"
+                else:
+                    self.results_list_to_send.append("rtc-false:")
+
             self.i2c_devices[1][2]='False'
 
         self.rtc.datetime(oldRtc)
@@ -175,7 +285,7 @@ class ComponentTests:
 
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-        self.display.print('Testing ControlUnit')
+        self.display.print(self.language_dict[self.current_language][0]["testing_cu"])
 
         ATmega = None
         
@@ -185,12 +295,16 @@ class ComponentTests:
             ATmega = False
             
         if ATmega ==True:
-            self.results_list.append('* ConUnit communication: Write OK')
-            self.results_list.append('* ConUnit communication: Read OK')
+            self.results_list.append(self.language_dict[self.current_language][0]["cu_write_ok"])
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_ok"])
+
+            self.results_list_to_send.append("com-true:")
 
         else:#If the hardware check function gives out False value
-            self.results_list.append('* ConUnit communication: Write ERR')
-            self.results_list.append('* ConUnit communication: Read ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_er"])
+            self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_er"])
+
+            self.results_list_to_send.append("com-false:")
             
     def ATmega_relay_check(self):#Relay testing function
         signalArr=["turnstile1_a","turnstile1_b","turnstile2_a","turnstile2_b","button1","button2"]#Array of all test-needed relays
@@ -198,11 +312,11 @@ class ComponentTests:
             self.NewFrame(self.page)
             self.display.set_pos(10, 60)
             self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-            self.display.print('* '+relayName+' testing')
+            self.display.print('* '+relayName+self.language_dict[self.current_language][0]["cu_testing"])
             self.display.fill_rectangle(5, 90, 180, 45, 008000)
             self.display.set_pos(10, 100)
             self.display.set_font(tt24)
-            self.display.print("Listen for relay!")
+            self.display.print(self.language_dict[self.current_language][0]["cu_relays"])
             self.display.set_font(tt14)
             self.M.Queue("SIGNAL",relayName)#Signals ControlUnit to turn on relay
             self.M.Send(True)
@@ -226,27 +340,27 @@ class ComponentTests:
 
             self.display.set_pos(170, 10)
             self.display.set_font(tt14)
-            self.display.write("PRESS---->")
+            self.display.write(self.language_dict[self.current_language][0]["press_button"])
 
             self.display.set_pos(10, 60)
             self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-            self.display.print('* '+str(i+1)+'. Wiegand device address testing')
+            self.display.print('* '+str(i+1)+self.language_dict[self.current_language][0]["w_test"])
 
             self.display.fill_rectangle(5, 90, 215, 45, 008000)
 
             self.display.set_pos(10, 100)
             self.display.set_font(tt24)
-            self.display.print("For next test press")
+            self.display.print(self.language_dict[self.current_language][0]["w_next_test"])
 
             self.display.set_font(tt14)
             self.display.set_pos(10, 160)
-            self.display.print("Wiegand Card Data:")
+            self.display.print(self.language_dict[self.current_language][0]["w_card_data"])
 
             self.display.set_pos(10, 190)
-            self.display.print("Wiegand Card Data(rev):")
+            self.display.print(self.language_dict[self.current_language][0]["w_card_data_rev"])
 
             self.display.set_pos(10, 220)
-            self.display.print("Wiegand Type(bits):")
+            self.display.print(self.language_dict[self.current_language][0]["w_card_type"])
 
             while True:
                 if wiegand_reader.available():#Checks if card has been scanned by the RFID card reader
@@ -266,16 +380,16 @@ class ComponentTests:
 
                     card_code = wiegand_reader.GetCode()# Gets the card code
                     self.display.set_pos(10, 160)
-                    self.display.print("RFID Card Data:" + str(card_code))
+                    self.display.print(self.language_dict[self.current_language][0]["w_card_data"] + str(card_code))
 
 
                     card_revCode=wiegand_reader.GetRevCode()
                     self.display.set_pos(10, 190)
-                    self.display.print("Wiegand Card Data(rev):" + str(card_revCode))                        
+                    self.display.print(self.language_dict[self.current_language][0]["w_card_data_rev"] + str(card_revCode))                        
 
                     card_type = wiegand_reader.GetType()# Gets the RFID bit type
                     self.display.set_pos(10, 220)
-                    self.display.print("Wiegand Type(bits):" + str(card_type))
+                    self.display.print(self.language_dict[self.current_language][0]["w_card_type"] + str(card_type))
                     
                     if loop == 1:
 
@@ -289,11 +403,17 @@ class ComponentTests:
 
         if self.rfid_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
 
-            self.results_list.append('* 0 Wiegand readers work: ERR')
+            self.results_list.append(self.language_dict[self.current_language][0]["w_test_er"])
 
         elif self.rfid_res != []:#If there are working card readers it puts in the status array information for results showcase
 
-            self.results_list.append('* '+str(len(self.rfid_res))+' Wiegand readers work')
+            self.results_list.append('* '+str(len(self.rfid_res))+self.language_dict[self.current_language][0]["w_test_ok"])
+
+            for i in range(4):
+                if str(i+1)+"." in self.rfid_res:
+                    self.results_list_to_send.append("w"+str(i+1)+"-true:")
+                else:
+                    self.results_list_to_send.append("w"+str(i+1)+"-false:")
 
 
 
@@ -301,3 +421,22 @@ def RandomString(length=6):
     characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     random_string = ''.join(random.choice(characters) for _ in range(length))
     return random_string
+
+def GetLang():
+    with open('/language_dict.json', encoding='utf-8') as f:
+        data = json.load(f)
+    return data
+
+def GetConf():
+    try:
+        open('/conf.json', encoding='utf-8')
+
+    except:
+        obj = {"language": "conf-eng", "history": ["","","start"]}
+
+        with open('/conf.json', 'w+') as f:
+            json.dump(obj, f)
+
+    with open('/conf.json', encoding='utf-8') as f:
+        data = json.load(f)
+    return data

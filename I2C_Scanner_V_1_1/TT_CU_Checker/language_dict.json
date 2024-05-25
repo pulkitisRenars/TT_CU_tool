@@ -1,0 +1,128 @@
+{
+    "english": [{
+        "main_start": "* To Start press button",
+
+        "press_button": "PRESS---->",
+        "press_button_b": "Buzz------>",
+        "press_button_o": "ON---------->",
+        "press_button_r": "TEST RELAYS---->",
+        "restart_button": "RESTART---->",
+
+        "no_device": "No device",
+
+        "test_numbering": ". test",
+        "test_results": "Results",
+
+        "i2c_devices_found": "* I2C devices found:",
+        "i2c_devices_not_found": "* I2C devices not found:",
+        "cu_device_found": "* ControlUnit device found",
+        "tt_device_found": "* TTunit device found",
+        "connected_comp": " connected",
+
+        "testing_eeprom": "Testing EEPROM",
+        "eeprom_write_ok": "* EEPROM communication: Write OK",
+        "eeprom_write_er": "* EEPROM communication: Write ERR",
+        "eeprom_read_ok": "* EEPROM communication: Read OK",
+        "eeprom_read_er": "* EEPROM communication: Read ERR",
+
+        "testing_rtc": "Testing Real-Time-Clock",
+        "rtc_write_ok": "* RTC communication: Write OK",
+        "rtc_write_er": "* RTC communication: Write ERR",
+        "rtc_read_ok": "* RTC communication: Read OK",
+        "rtc_read_er": "* RTC communication: Read ERR",
+
+        "testing_cu": "Testing ControlUnit",
+        "cu_write_ok": "* ConUnit communication: Write OK",
+        "cu_write_er": "* ConUnit communication: Write ERR",
+        "cu_read_ok": "* ConUnit communication: Read OK",
+        "cu_read_er": "* ConUnit communication: Read ERR",
+
+        "cu_relays": "Listen for relay!",
+        "cu_testing": " testing",
+
+        "w_test": ". Wiegand device address testing",
+        "w_next_test": "For next test press",
+        "w_card_data": "Wiegand Card Data:",
+        "w_card_data_rev": "Wiegand Card Data(rev):",
+        "w_card_type": "Wiegand Type(bits):",
+        "w_test_ok": " Wiegand readers work",
+        "w_test_er": "* 0 Wiegand readers work: ERR",
+
+        "alarm_to_confirm": "Alarm to confirm scan results",
+        "alarming": "Alarming",
+
+        "buzz_to_confirm": "Buzz to confirm scan results",
+        "buzzing": "Buzzing",
+
+        "not_found": " not found",
+        "problem_eeprom": "* Likely a problem with EEPROM",
+
+        "test_successful": "Test successful!",
+        "test_unsuccessful": "Test unsuccessful!",
+
+        "pc_connected": "Computer"
+        }],
+
+    "latvian": [{
+        "title": "* Piespied pogu, lai sāktu",
+
+        "press_button": "SPIED---->",
+        "press_button_b": "SPIED---->",
+        "press_button_o": "Ieslēdz----->",
+        "press_button_r": "TESTĒ RELEJUS-->",
+        "restart_button": "RESTARTĒ--->",
+
+        "no_device": "Nav ierīces",
+
+        "test_numbering": ". tests",
+        "test_results": "Rezultāti",
+
+        "i2c_devices_found": "* I2C ierīces atrastas:",
+        "cu_device_found": "* ControlUnit ierīce atrasta",
+        "tt_device_found": "* TTunit ierīce atrasta",
+        "connected_comp": " savienots",
+
+        "testing_eeprom": "Pārbauda EEPROM",
+        "eeprom_write_ok": "* EEPROM komunik. : Rakst. OK",
+        "eeprom_write_er": "* EEPROM komunik. : Rakst. ERROR",
+        "eeprom_read_ok": "* EEPROM komunik. : Lasiš.  OK",
+        "eeprom_read_er": "* EEPROM komunik. : Lasiš.  ERROR",
+
+        "testing_rtc": "Pārbauda Real-Time-Clock",
+        "rtc_write_ok": "* RTC komunik. : Rakst. OK",
+        "rtc_write_er": "* RTC komunik. : Rakst. ERROR",
+        "rtc_read_ok": "* RTC komunik. : Lasiš.  OK",
+        "rtc_read_er": "* RTC komunik. : Lasiš.  ERROR",
+
+        "testing_cu": "Pārbauda ControlUnit",
+        "cu_write_ok": "* ConUnit komunik. : Rakst. OK",
+        "cu_write_er": "* ConUnit komunik. : Rakst. ERROR",
+        "cu_read_ok": "* ConUnit komunik. : Lasiš.  OK",
+        "cu_read_er": "* ConUnit komunik. : Lasiš.  ERROR",
+
+        "cu_relays": "Klausies skaņu!",
+        "cu_testing": " pārbaude",
+
+        "w_test": "Wiegand ierīces addr. pārbaude",
+        "w_next_test": "Nākošai pārbaudei spied",
+        "w_card_data": "Wiegand Kartes Dati:",
+        "w_card_data_rev": "Wiegand Kartes Dati(rev):",
+        "w_card_type": "Wiegand Tips(biti):",
+        "w_test_ok": "Wiegand lasītāji strādā",
+        "w_test_er": " 0 Wiegand lasītāji strādā: ERR",
+
+        "alarm_to_confirm": "Signalizē, lai apstiprinātu rezultātus",
+        "alarming": "Signalizē",
+
+        "buzz_to_confirm": "Dūcini, lai apstiprinātu rezultātus",
+        "buzzing": "Dūcina",
+
+        "not_found": " nav atrasts",
+        "problem_eeprom": "* Iespējams problēma ar EEPROM",
+
+        "test_successful": "Pārbaude veiksmīga!",
+        "test_unsuccessful": "Pārbaude neveiksmīga!",
+
+        "pc_connected": "Dators"
+    }]
+}
