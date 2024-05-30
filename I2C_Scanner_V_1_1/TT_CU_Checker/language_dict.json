@@ -60,7 +60,9 @@
         "test_successful": "Test successful!",
         "test_unsuccessful": "Test unsuccessful!",
 
-        "pc_connected": "Computer"
+        "pc_connected": "Computer",
+        "deleted_history": "Deleted device history",
+        "changed_language": "Changed device language"
         }],
 
     "latvian": [{
@@ -123,6 +125,8 @@
         "test_successful": "Pārbaude veiksmīga!",
         "test_unsuccessful": "Pārbaude neveiksmīga!",
 
-        "pc_connected": "Dators"
+        "pc_connected": "Dators",
+        "deleted_history": "Izdzēsta ierīces vēsture",
+        "changed_language": "Mainīta ierīces valoda"
     }]
 }

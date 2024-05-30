@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import messagebox
 from PIL import ImageTk, Image  
 import json
+from os import path
 
 from serial import Serial, PARITY_EVEN, STOPBITS_ONE
 import time
@@ -127,7 +128,7 @@ class ConfigTTCUChecker:
 
     def GetConf(self):
                 # Load the JSON data from file
-        with open('I2C_Scanner_V_1_1\ConfigurationApp\conf.json', encoding='utf-8') as f:
+        with open(path.abspath(path.join(path.dirname(__file__), 'conf.json')), encoding='utf-8') as f:
             self.language = json.load(f)
 
     def ChangeLanguageHandler(self):
@@ -265,7 +266,7 @@ class ConfigTTCUChecker:
 
         self.content_box = Frame(self.root, width=1300, height=600, bg="#fff")
 
-        image = Image.open("I2C_Scanner_V_1_1\ConfigurationApp\images\otradi copy.tif")
+        image = Image.open(path.abspath(path.join(path.dirname(__file__), "images\otradi copy.tif")))
         image = image.resize((800, 400))
 
         self.image = ImageTk.PhotoImage(image)

@@ -52,7 +52,7 @@ class ComponentTests:
 
         self.used_device = None
 
-        self.i2c_devices=[['104','EEPROM','False'],['80','RTC','False']]
+        self.i2c_devices=[['104','EEPROM','True'],['80','RTC','True']]
 
         self.rfid_res = []
 
@@ -83,12 +83,14 @@ class ComponentTests:
         self.page = 0
 
     def GetCurrentLang(self):
-        if self.history_conf["language"] == "conf_eng":
-            self.current_language = "english"
-        elif self.history_conf["language"] == "conf_lat":
-            self.current_language = "latvian"
+        if self.history_conf["language"] == "conf-eng":
+            current_language = "english"
+        elif self.history_conf["language"] == "conf-lat":
+            current_language = "latvian"
         else:
-            self.current_language = "english"   
+            current_language = "english"
+            
+        return current_language
 
     def SendRecieveData(self):
 
@@ -116,6 +118,10 @@ class ComponentTests:
                         print("END\n")
 
                         self.NewFrame("pc")
+                        
+                        self.display.set_pos(10, 60)
+                        self.display.print(self.language_dict[self.current_language][0]["pc_connected_label"])
+                        
                         break
                     
                     elif data == "delete":
@@ -123,8 +129,13 @@ class ComponentTests:
                         sys.stdout.write("deleted\r")
                         self.history_conf["history"] = ["","", "start"]
                         
-                        with open('/hist_conf.json', 'w') as file:
+                        with open('/conf.json', 'w') as file:
                             json.dump(self.history_conf, file)
+                        
+                        self.NewFrame("pc")
+                        
+                        self.display.set_pos(10, 60)
+                        self.display.print(self.language_dict[self.current_language][0]["deleted_history"])
                         break
                     
                     elif data == "lat":
@@ -133,18 +144,32 @@ class ComponentTests:
                         
                         self.history_conf["language"] = "conf-lat"
                         
-                        with open('/hist_conf.json', 'w') as file:
+                        with open('/conf.json', 'w') as file:
                             json.dump(self.history_conf, file)
+                            
+                        self.current_language = self.GetCurrentLang()
+                        
+                        self.NewFrame("pc")
+                        
+                        self.display.set_pos(10, 60)
+                        self.display.print(self.language_dict[self.current_language][0]["changed_language"])
                         break
                     
                     elif data == "eng":
                         
                         self.history_conf["language"] = "conf-eng"
                         
-                        with open('hist_conf.json', 'w') as file:
+                        with open('conf.json', 'w') as file:
                             json.dump(self.history_conf, file)
+                            
+                        self.current_language = self.GetCurrentLang()
                         
                         sys.stdout.write("eng_configured\r")
+                        
+                        self.NewFrame("pc")
+                        
+                        self.display.set_pos(10, 60)
+                        self.display.print(self.language_dict[self.current_language][0]["changed_language"])
                         
                         break
                         
@@ -165,7 +190,12 @@ class ComponentTests:
         else:
             eeprom_check = True
             print(eeprom_check)
-        self.eprom.wipe()
+            
+        try:
+            self.eprom.wipe()
+        except:
+            eeprom_check = False
+            
         return eeprom_check
 
     def UartComPreTest(self):
@@ -208,6 +238,7 @@ class ComponentTests:
             for i in range(256):
                 if random_arr[i] not in self.eprom.read(i*64,6):
                     break
+
             if i == 255:       
                 self.results_list.append(self.language_dict[self.current_language][0]["eeprom_read_ok"])
 

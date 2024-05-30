@@ -1,4 +1,3 @@
-main.py
 #I2C and ControlUnit scanner tool meant for testing TTunits and ControlUnits. The tool tests I2C devices(Real-Time-Clock, EEPROM, Buzzer),
 #also the ControlUnit(connected relays, Alarm state), Wiegand RFID card reader(all 4 pin addresses, card data, reader functionality)
 
@@ -24,7 +23,7 @@ from ComponentTests import ComponentTests
 
 def AddToHistory(data):
     CT.history_conf["history"].append(data)
-    with open('/hist_conf.json', 'w') as file:
+    with open('/conf.json', 'w') as file:
         json.dump(CT.history_conf, file)
 
 
@@ -51,10 +50,10 @@ def newFrame(page):#Function for a new frame on the LCD display
         CT.display.write("TTunit")
 
     elif device == [] and page != "pc":#If there aren't any devices connected to RPi
-        CT.display.set_pos(130, 285)
+        CT.display.set_pos(110, 285)
         CT.display.set_font(tt24)
-        CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
-
+        CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
+        print(CT.current_language)
         CT.display.write(CT.language_dict[CT.current_language][0]["no_device"])
 
     if page == "pc":
@@ -64,7 +63,7 @@ def newFrame(page):#Function for a new frame on the LCD display
 
         CT.display.write(CT.language_dict[CT.current_language][0]["pc_connected"])
 
-    CT.display.fill_rectangle(10 , 16, 85, 30, 111111)
+    CT.display.fill_rectangle(10 , 16, 85, 30, 808080)
     CT.display.fill_rectangle(5 , 11, 85, 30, 65535)
 
     CT.display.set_font(tt24)
@@ -79,7 +78,7 @@ def newFrame(page):#Function for a new frame on the LCD display
     CT.display.set_font(tt14)
     CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
-    if page != 0 and page != "res":#If there are any test numbers set it sets to needed test number
+    if page != 0 and page != "res" and page != "pc":#If there are any test numbers set it sets to needed test number
         CT.display.set_pos(10, 300)
         CT.display.write(str(CT.page)+CT.language_dict[CT.current_language][0]["test_numbering"])
 
@@ -95,7 +94,7 @@ check_eeprom = CT.EepromPreTest()
 def TestSuccess():
 
     string_to_send = ""
-
+    print(CT.i2c_devices)
     for val in CT.results_list_to_send:
         string_to_send = string_to_send + val 
 
@@ -122,7 +121,7 @@ def TestSuccess():
     elif CT.used_device == "I2C":
 
         if CT.i2c_devices[0][2]=="True" and CT.i2c_devices[1][2]=="True":
-
+            print("in tt true")
             string_to_send = "tt-true:"+string_to_send
 
             AddToHistory(string_to_send)
@@ -139,7 +138,7 @@ def TestSuccess():
 def scan_i2c():#The main scanner function
     devices = CT.i2c.scan()
     x=0
-
+    print(devices)
     if devices:#If there are I2C hardware used
         newFrame(0)
         CT.display.set_pos(10, 60)
@@ -272,7 +271,7 @@ def scan_i2c():#The main scanner function
             if status=="False":#Checks the I2C hardware for "False" values
 
                 CT.display.set_pos(0, col)
-                CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+                CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
                 CT.display.print('* '+names+CT.language_dict[CT.current_language][0]["not_found"])
 
                 print("The scanner didn't find "+names+" device")
@@ -285,7 +284,7 @@ def scan_i2c():#The main scanner function
         print(devices)
 
         CT.display.set_pos(10, 60)
-        CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+        CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
         CT.display.print(CT.language_dict[CT.current_language][0]["i2c_devices_not_found"])
 
         print("There weren't any I2C devices found")
@@ -363,7 +362,7 @@ def TestResults():
                         CT.display.set_font(tt14)
 
                         if "ERR" in stat or "ERROR" in stat:
-                            CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+                            CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
 
                             print("err")
 
@@ -399,11 +398,11 @@ def TestResults():
 
                         if CT.rfid_res != ['1.','2.','3.','4.'] and "readers" in stat:
 
-                            CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+                            CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
 
                         elif ("ERR" in stat or "ERROR" in stat):
 
-                            CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+                            CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
 
                         CT.display.write(stat)
 
@@ -419,8 +418,9 @@ def TestResults():
 
                     CT.display.set_pos(30, 250)
                     CT.display.set_font(tt24)
-                    CT.display.set_color(color565(0, 0, 255), color565(255, 255, 255))
+                    CT.display.set_color(color565(255, 0, 0), color565(255, 255, 255))
                     CT.display.write(CT.language_dict[CT.current_language][0]["test_unsuccessful"])
+                    print("The I2C scanner test was unsuccessful!")
                     
                     break
 
