@@ -440,11 +440,11 @@ class ComponentTests:
 
             self.results_list.append('* '+str(len(self.rfid_res))+self.language_dict[self.current_language][0]["w_test_ok"])
 
-            for i in range(4):
-                if str(i+1)+"." in self.rfid_res:
-                    self.results_list_to_send.append("w"+str(i+1)+"-true:")
-                else:
-                    self.results_list_to_send.append("w"+str(i+1)+"-false:")
+        for i in range(4):
+            if str(i+1)+"." in self.rfid_res:
+                self.results_list_to_send.append("w"+str(i+1)+"-true:")
+            else:
+                self.results_list_to_send.append("w"+str(i+1)+"-false:")
 
 
 

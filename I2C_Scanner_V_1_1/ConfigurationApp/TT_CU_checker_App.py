@@ -4,6 +4,7 @@ from tkinter import messagebox
 from PIL import ImageTk, Image  
 import json
 from os import path
+import asyncio
 
 from serial import Serial, PARITY_EVEN, STOPBITS_ONE
 import time
@@ -287,7 +288,6 @@ class ConfigTTCUChecker:
 
         self.content_box.pack(side=BOTTOM)
 
-        self.root.mainloop()
 
     def CreateNavbar(self):
         self.navbar = Frame(self.root, bg="green", height="150", width="2000")
@@ -507,6 +507,46 @@ class ConfigTTCUChecker:
 
         Button(self.configure_box, command=self.ConfigureHandler, text=self.language[self.current_language][0]["submit_button"], font=('MS Sans Serif', 16, 'bold'),  padx=5, pady=5).place(x=1100, y=500)
 
-
+started = False
 Window = ConfigTTCUChecker()
-Window.CreateWindow()
+
+async def main():
+    started = False
+
+    async def RunTkinter():
+        while True:
+            Window.root.update()
+            await asyncio.sleep(0.01)
+
+    async def CheckConnectedDevice():
+        ser = Serial()
+        while True:
+            if Window.device_connected is not False:
+
+                check = True
+
+                try:
+                    ser = Serial(Window.device_port_value, 9600)
+                except Exception as e:
+                    check = False
+
+                if check is False:
+                    Window.device_connected_label.place_forget()
+
+                    Window.device_failed_label.place(x=1050, y=110)
+
+                    Window.device_connected = False
+
+
+                ser.close()
+                await asyncio.sleep(4)
+            else:
+                await asyncio.sleep(1)
+
+    while not started:
+        Window.CreateWindow()
+        started = True
+
+    await asyncio.gather(RunTkinter(), CheckConnectedDevice())
+
+asyncio.run(main())
