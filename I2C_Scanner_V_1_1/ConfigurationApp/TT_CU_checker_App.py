@@ -9,6 +9,7 @@ import asyncio
 from serial import Serial, PARITY_EVEN, STOPBITS_ONE
 import time
 
+# Funkcija, kas iecentrē aplikācijas logu.
 def center(win):
     win.update_idletasks()
     width = win.winfo_width()
@@ -22,18 +23,23 @@ def center(win):
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
     win.deiconify()
 
+# Funkcija, kas nosūta specifisku ziņu uz ierīci caur seriālo komunikāciju.
 def SendToDevice(device_port,type):
 
     type = type+"\r"
 
+    # Veic seriālo komunikāciju ar ierīci.
     try:
         s = Serial(port=device_port, parity=PARITY_EVEN, stopbits=STOPBITS_ONE, timeout=1)
         s.flush()
 
+        # Nosūta ziņu.
         s.write(type.encode())
 
+        # Nolasa atbildi.
         mes = s.read_until().strip()
 
+        # Ja atbilde nav tukša tad ziņa tiek padota tālāk.
         if mes == b'':
             return False
         else:
@@ -42,6 +48,7 @@ def SendToDevice(device_port,type):
     except Exception:
         return False
 
+# Funkcija, kas apstrādā saņemtos datus no rīka.
 def ParseHistoryData(data):
 
     history_array = {
@@ -52,6 +59,7 @@ def ParseHistoryData(data):
     tt_count = 0
     cu_count = 0
 
+    # Saskaita cik rezultātu ir par TTunit un par ControlUnit.
     for data_item in data:
             
             if data_item[0:2] == "tt":
@@ -60,16 +68,19 @@ def ParseHistoryData(data):
             elif data_item[0:2] == "cu":
                 cu_count+=1
 
+    # Par katru saskaitīto mikročipu rezultātu elementa pievieno tukšu datni.
     for i in range(tt_count):
         history_array["ttunit"][i] = {}
 
     for i in range(cu_count):
         history_array["controlunit"][i] = {}
     
+    # Apstrādā saņemtos datus un tos ievieto datnē.
     for i, data_item in enumerate(data):
 
         split_data = data_item.split(":")
 
+        # Ja elements ir TTunit.
         if data_item[0:2] == "tt":
 
             for item in split_data:
@@ -80,10 +91,11 @@ def ParseHistoryData(data):
                     if len(history_array["ttunit"][i]) < 3:
 
                         if key not in history_array["ttunit"][i]:
-
+                            
+                            # Ievieto datnē rezultātu
                             history_array["ttunit"][i][key] = value
                             break
-
+        # Ja elements ir ControlUnit.
         elif data_item[0:2] == "cu":
 
             for item in split_data:
@@ -93,6 +105,8 @@ def ParseHistoryData(data):
                 for i in range(cu_count):
 
                     if len(history_array["controlunit"][i]) < 8:
+
+                        # Ievieto datnē rezultātu
                         history_array["controlunit"][i][key] = value
                         break
 
@@ -101,9 +115,12 @@ def ParseHistoryData(data):
 class ConfigTTCUChecker:
     global center
 
+    # Konstruktors, kas izveido aplikacijas logu.
     def __init__(self):
 
         self.language = {}
+
+        # Ielādē aplikācijas saskarnes vārdnīcu.
         self.GetConf()
     
         self.root =  Tk()
@@ -112,7 +129,7 @@ class ConfigTTCUChecker:
         self.root.option_add('*Dialog.msg.font', 'Arial 12')
 
         self.root.resizable(0, 0)
-        self.root.minsize(1280, 720) # Pievieno minimālās un maksimālās vērtības logam
+        self.root.minsize(1280, 720) # Pievieno minimālās un maksimālās vērtības logam.
         self.root.maxsize(1920, 1080)
         self.root.geometry('1280x720')
         self.root.configure(bg="#fff")
@@ -123,15 +140,16 @@ class ConfigTTCUChecker:
 
         self.language_option_val = StringVar(self.root)
 
-        center(self.root)# Funkcijas palaišana, lai iecentrētu programmatūru ekrāna vidū
+        center(self.root)# Funkcijas palaišana, lai iecentrētu programmatūru ekrāna vidū.
 
         self.current_language = "english"
 
+    # Funkcija, kas ielādē aplikācijas saskarnes vārdnīcu.
     def GetConf(self):
-                # Load the JSON data from file
         with open(path.abspath(path.join(path.dirname(__file__), 'conf.json')), encoding='utf-8') as f:
             self.language = json.load(f)
 
+    # Funkcija, kas pārmaina aplikācijas saskarnes valodu un to ielādē aplikācijas logā.
     def ChangeLanguageHandler(self):
 
         if self.current_language == "english":
@@ -144,12 +162,18 @@ class ConfigTTCUChecker:
         self.content_box.destroy()
         self.CreateWindow()
 
+    # Funkcija, kas veic rīka pārbaudes rezultātu izdzēšanu.
     def DeleteHistoryHandler(self):
         if self.device_connected:
             if SendToDevice(self.device_port_value, "delete") == b'deleted':
+
+                # Izvada atsevišķu logu, kas signalizē par datu izdzēšanu.
                 messagebox.showwarning(self.language[self.current_language][0]["deleted_history_title"], self.language[self.current_language][0]["deleted_history_message"])
+
+                # No jauna iegūst ierīces datus. 
                 self.CheckDevice()
 
+    # Funkcija, kas veic rīka valodas saskarnes maiņu.
     def ConfigureHandler(self):
         if self.device_connected:
             if self.language_option_val.get() == "Latvian" or self.language_option_val.get() == "Latviešu":
@@ -162,8 +186,12 @@ class ConfigTTCUChecker:
                 messagebox.showwarning("Warning!", self.language[self.current_language][0]["changed_language_message"]+self.language_option_val.get())
                 self.CheckDevice()
 
+    # Funkcija, kas izveido savienojumu ar rīku, nolasot nosūtītos datus un tos apstrādājot.
     def CheckDevice(self):
+
         serial_init = True
+
+        # Veic seriālās komunikācijas numura ievades validāciju.
         if self.device_connected == False:
             self.device_port_value = self.device_port.get()
 
@@ -177,6 +205,7 @@ class ConfigTTCUChecker:
             self.device_port_value = "COM" + self.device_port_value[3:].upper()
             
         else:
+            # Uz atsevišķa loga izvada, ka nav veiksmīgs savienojums.
             messagebox.showerror("Error", self.language[self.current_language][0]["incorrect_com"])
             serial_init = False
 
@@ -184,6 +213,7 @@ class ConfigTTCUChecker:
 
         history_data = []
 
+        # Nosūta rīkam apstiprinājumu par datu nepieciešamību un ja tas ir korekts, tad process turpinas.
         if SendToDevice(self.device_port_value, "receive") == b'transfer':
             self.device_connected = True
 
@@ -197,13 +227,13 @@ class ConfigTTCUChecker:
             if serial_init:
 
                 try:
+                    # Veic datu nolasīšanu un to saglabāšanu, apstrādāšanu
                     while True:
 
-                        data = ser.readline().strip()  # Remove leading/trailing whitespace and newline characters
+                        data = ser.readline().strip()
 
                         if data:
-                            data_str = data.decode()  # Decode bytes to string
-
+                            data_str = data.decode()
                             if "END" not in data_str:
                                 if "eng" in data_str:
                                     self.language_option_val.set(self.language[self.current_language][0]["configure_english_language"])
@@ -221,6 +251,7 @@ class ConfigTTCUChecker:
                 except Exception:
                     serial_init = False
                 
+                # Veic datu apstrādi un paziņošanu, ka ierīce veiksmīgi savienota un nolasīta.
                 if serial_init and history_data != []:
 
                     try:
@@ -244,9 +275,11 @@ class ConfigTTCUChecker:
 
                     self.device_failed_label.place(x=1050, y=110)
 
+                # Ja iepriekš aplikācija bijusi vēstures sadaļā, tad to ielādē vēlreiz ar jauniem datiem.
                 if self.clicked_history:
                     self.LoadHistory()
 
+                # Ja iepriekš aplikācija bijusi konfigurācijas sadaļā, tad to ielādē vēlreiz ar jauniem datiem.
                 elif self.clicked_config:
                     self.LoadConfigure()
 
@@ -255,9 +288,10 @@ class ConfigTTCUChecker:
 
             self.device_failed_label.place(x=1050, y=110)
 
+            # Uz atsevišķa loga izvada, ka nav veiksmīgs savienojums.
             messagebox.showerror("Error", self.language[self.current_language][0]["no_connection"])
             
-
+    #Funkcija, kas izveido aplikācijas logu un tā saturu.
     def CreateWindow(self):
 
         self.clicked_history = False
@@ -267,6 +301,7 @@ class ConfigTTCUChecker:
 
         self.content_box = Frame(self.root, width=1300, height=600, bg="#fff")
 
+        # Ievieto bildi sākuma lapā.
         image = Image.open(path.abspath(path.join(path.dirname(__file__), "images\otradi copy.tif")))
         image = image.resize((800, 400))
 
@@ -279,6 +314,7 @@ class ConfigTTCUChecker:
         self.history_box = Frame()
         self.configure_box = Frame()
 
+        # Izveido navigācijas joslu.
         self.CreateNavbar()
 
         if self.device_connected:
@@ -288,15 +324,17 @@ class ConfigTTCUChecker:
 
         self.content_box.pack(side=BOTTOM)
 
-
+    #Funkcija, kas izveido navigācijas joslu.
     def CreateNavbar(self):
         self.navbar = Frame(self.root, bg="green", height="150", width="2000")
+        # Izveido logo uz navigācijas joslas
         Frame(self.navbar, width="155", height="50", bg="#000").place(x="35", y="45")
         logo_frame = Frame(self.navbar, width="155", height="50")
         Label(logo_frame, fg="black", font=('MS Sans Serif', 28, 'bold'), text="IN").place(x="5", y="0")
         Label(logo_frame, fg="green", font=('MS Sans Serif', 28, 'bold'), text="PASS").place(x="45", y="0")
         logo_frame.place(x="30", y="40")
 
+        # Izvieto dažādas pogas un ievades laukus uz navigācijas joslas.
         self.history_button = Button(self.navbar, text=self.language[self.current_language][0]["history"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command=self.LoadHistory, highlightbackground="black").place(x=350, y=45)
 
         self.configure_button = Button(self.navbar, text=self.language[self.current_language][0]["configure"], font=('MS Sans Serif', 16, 'bold'), padx=5, pady=5, command=self.LoadConfigure).place(x=550, y=45)
@@ -316,11 +354,13 @@ class ConfigTTCUChecker:
 
         self.navbar.pack(side=TOP)
 
+    # Funkcija, kas ielādē vēstures sadaļas rāmi uz aplikācijas loga.
     def LoadHistory(self):
         
         self.clicked_history = True
         self.clicked_config = False
 
+        # Iznīcina nevajadzīgos rāmjus no loga.
         self.configure_box.pack_forget()  
         self.configure_box.destroy()
         self.history_box.destroy()
@@ -329,6 +369,7 @@ class ConfigTTCUChecker:
         else:
             self.CreateWindow()
         
+        # Izveido attiecošos elementus uz rāmja.
         self.history_box = Frame(self.content_box, width=1300, height=600, bg="#fff")
 
         self.ttunit_box = Frame(self.history_box, width=600, height=500, bd=2, relief=SOLID, bg="#fff")
@@ -341,10 +382,12 @@ class ConfigTTCUChecker:
 
         Button(self.history_box, text=self.language[self.current_language][0]["history_delete_button"], command= self.DeleteHistoryHandler, bg="#fff").place(x=1110, y=25)
 
+        # Izveido TTunit tabulas galvenes.
         headers = ["N.", "Status", "EEPROM", "RTC"]
         for i in range(4):
             Label(self.ttunit_box, text=headers[i], highlightbackground="black", highlightcolor="black", highlightthickness=1, width=10, bg="green").grid(row=0, column=i)
 
+        # Ja ierīce pievienota un saņemti dati, tad tos apstrādā un izvieto tabulā.
         if self.device_connected:
             row = 1
             for key, value in self.tt_cu_history['ttunit'].items():
@@ -385,12 +428,12 @@ class ConfigTTCUChecker:
                     column = column + 1
                 row += 1
 
-
+        # Izveido ControlUnit tabulas galvenes.
         headers = ["N.", "Status", "EEPROM", "RTC", "UART", "1. Wieg", "2. Wieg", "3. Wieg", "4. Wieg"]
         for i in range(9):
             Label(self.controlunit_box, text=headers[i], highlightbackground="black", highlightcolor="black", highlightthickness=1, width=7, bg="green").grid(row=0, column=i)
 
-
+        # Ja ierīce pievienota un saņemti dati, tad tos apstrādā un izvieto tabulā.
         if self.device_connected:
             row = 1
 

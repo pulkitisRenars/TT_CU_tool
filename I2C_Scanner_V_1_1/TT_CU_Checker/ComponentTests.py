@@ -17,7 +17,7 @@ import sys
 from tools.MSG import MSG
 from tools.Wiegand import Wiegand
 
-
+# Konstantes, kas vajadzīgas komponenšu pārbaudēm un displeja izvadei.
 SCR_WIDTH = const(480)
 SCR_HEIGHT = const(320)
 SCR_ROT = const(3)
@@ -35,19 +35,27 @@ TFT_DC_PIN = const(21)
 sda=machine.Pin(0)
 scl=machine.Pin(1)
 
-
 class ComponentTests:
+
+    # Konstruktors, kas izveido attiecošās vērtbības korektai programmatūras izpildei.
     def __init__(self, NewFrame):
 
         self.main_button = Pin(25, Pin.IN, Pin.PULL_UP)
         self.TT_buzzer = Pin(24,Pin.OUT)
         self.page = 0
 
+        # Ievieto sarakstē displeja saskarnes vārdnīcu.
         self.language_dict = GetLang()
+
+        # Ievieto sarakstē rezultātu vēsturi un izmantojamo valodu.
         self.history_conf = GetConf()
+
+        # Ievieto mainīgajā nolasīto izmantojamo valodu.
         self.current_language = self.GetCurrentLang()
 
         self.spi = SPI( 0, baudrate=40000000, miso=Pin(TFT_MISO_PIN), mosi=Pin(TFT_MOSI_PIN), sck=Pin(TFT_CLK_PIN) )
+
+        # Objekta konstruēšana ar kuras palīdzību atlasa pievienotās I2C komponentes. 
         self.i2c=machine.I2C( 0, sda=sda, scl=scl, freq=400000 )
 
         self.used_device = None
@@ -56,7 +64,8 @@ class ComponentTests:
 
         self.rfid_res = []
 
-        self.uart_id=UART( 1, baudrate=57600, timeout=1, invert=3 )#Object used to find out if there is a ControlUnit connected or not
+        # Objekta konstruktēšana ar kuras palīdzību noskaidro vai ControlUnit mikročips tiek pievienots.
+        self.uart_id=UART( 1, baudrate=57600, timeout=1, invert=3 )
 
         self.M = MSG(print)
 
@@ -64,17 +73,17 @@ class ComponentTests:
         
         self.eprom=EEPROM( addr=80, pages=256, bpp=64, i2c=self.i2c, at24x=0 )
         
-        self.rtc=machine.RTC()#Real-Time-Clock defining
+        # Real-Time-Clock objekta konstruktēšana
+        self.rtc=machine.RTC()
 
         self.results_list = []
         self.results_list_to_send= []
-
-        self.rtc=machine.RTC()#Real-Time-Clock defining
 
         self.NewFrame = NewFrame
 
         pass
 
+    # Funkcija, kas attīra visus iespējamos saglabātos mikročipu datus uz programmatūras.
     def ResetForTest(self):
 
         self.rfid_res = []
@@ -82,6 +91,7 @@ class ComponentTests:
         self.used_device = None
         self.page = 0
 
+    # Funkcija, kas atlasa izmantojamo valodu no ielādētā ".json" faila.
     def GetCurrentLang(self):
         if self.history_conf["language"] == "conf-eng":
             current_language = "english"
@@ -92,31 +102,42 @@ class ComponentTests:
             
         return current_language
 
+    # Bezgalīga cikla funkcija, kas veic datu plūsmu ar darbstaciju.
     def SendRecieveData(self):
 
+        # Veic datu plūsmas apstiprinājuma uzgaidi.
         poll_obj = select.poll()
         poll_obj.register(sys.stdin, select.POLLIN)
 
+        # Bezgalīgs cikls, programmatūra netiek virzīta vairs uz citu sazarojumu.
         while True:
             while True:
 
+                # Ja datu plūsmas apstiprinājums tiek saņemts.
                 poll_results = poll_obj.poll(1)
                 if poll_results:
-
+                    
+                    # Nolasa apstiprinājuma ziņu no darbstacijas.
                     data = str(sys.stdin.readline().strip())
                     
                     if data == "receive":
+
+                        # Nosūta apstiprinājuma atbildi uz darbstaciju.
                         print("transfer")
                         sys.stdout.write("transfer\r")
-                        
+
+                        # Nosūta mikročipu pārbaudes vēsturi uz darbstaciju.
                         for hist in self.history_conf["history"]:
                             print(hist,"\n")
                             utime.sleep(0.01)
-                            
+
+                        # Nosūta izmantojamo saskarnes valodu uz darbstaciju.
                         print(self.history_conf["language"],"\n")
 
+                        # Nosūta ziņu, ka datu plūsma ir pabeigta
                         print("END\n")
 
+                        # Izveido jaunu displeja kadru, kas liecina, ka rīks savienots ar darbstaciju.
                         self.NewFrame("pc")
                         
                         self.display.set_pos(10, 60)
@@ -125,13 +146,18 @@ class ComponentTests:
                         break
                     
                     elif data == "delete":
-                        
+
+                        # Nosūta apstiprinājuma atbildi uz darbstaciju.
                         sys.stdout.write("deleted\r")
+
+                        # Izveido tukšu datni, bet ar nepieciešamu datnes sākumu.
                         self.history_conf["history"] = ["","", "start"]
                         
+                        # ieraksta tukšo datni ".json" failā.
                         with open('/conf.json', 'w') as file:
                             json.dump(self.history_conf, file)
                         
+                        # Izveido jaunu displeja kadru, kas liecina, ka rīks savienots ar darbstaciju un pārbaudes rezultātu vēsture tiek izdzēsta.
                         self.NewFrame("pc")
                         
                         self.display.set_pos(10, 60)
@@ -140,8 +166,10 @@ class ComponentTests:
                     
                     elif data == "lat":
                         
+                        # Nosūta apstiprinājuma atbildi uz darbstaciju.
                         sys.stdout.write("lat_configured\r")
                         
+                        # Pārmaina datni, lai tā būtu balstīta uz latviešu valodu.
                         self.history_conf["language"] = "conf-lat"
                         
                         with open('/conf.json', 'w') as file:
@@ -149,6 +177,7 @@ class ComponentTests:
                             
                         self.current_language = self.GetCurrentLang()
                         
+                        # Izveido jaunu displeja kadru, kas liecina, ka rīks savienots ar darbstaciju un saskarnes valodas maiņa tiek mainīta.
                         self.NewFrame("pc")
                         
                         self.display.set_pos(10, 60)
@@ -156,7 +185,11 @@ class ComponentTests:
                         break
                     
                     elif data == "eng":
-                        
+
+                        # Nosūta apstiprinājuma atbildi uz darbstaciju.
+                        sys.stdout.write("eng_configured\r")
+
+                        # Nosūta apstiprinājuma atbildi uz darbstaciju.
                         self.history_conf["language"] = "conf-eng"
                         
                         with open('conf.json', 'w') as file:
@@ -164,8 +197,7 @@ class ComponentTests:
                             
                         self.current_language = self.GetCurrentLang()
                         
-                        sys.stdout.write("eng_configured\r")
-                        
+                        # Izveido jaunu displeja kadru, kas liecina, ka rīks savienots ar darbstaciju un saskarnes valodas maiņa tiek mainīta.
                         self.NewFrame("pc")
                         
                         self.display.set_pos(10, 60)
@@ -179,6 +211,7 @@ class ComponentTests:
             
             utime.sleep(0.01)    
 
+    # Funkcija, kas veic pirms pārbaudi par pievienotā mikročipa EEPROM komponenti.
     def EepromPreTest(self):
         try:
             for i in range(10):
@@ -198,26 +231,33 @@ class ComponentTests:
             
         return eeprom_check
 
+    # Funkcija, kas veic pirms pārbaudi par pievienotā ControlUnit mikročipa komunikācijas stāvokli.
     def UartComPreTest(self):
         try:
             self.M.Queue("GET","board_version")
             self.M.Send(True)
             self.M.Receive(True)
-            checkU=self.uart_id.read()#Variable used to find out if there is a ControlUnit connected or not
-            print(checkU)
-        except Exception as error:
+
+            checkU=self.uart_id.read()
+            
+        except Exception:
             checkU = None
-            print(error)
             
         return checkU
         
-
-    def EEPROM_check(self):#EEPROM testing function
+    # EEPROM komponentes pārbaudes funkcija.
+    def EEPROM_check(self):
+        
+        # Izveido jaunu kadru, kas liecina, ka tiek pārbaudīta komponente.
         self.NewFrame(self.page)
+
         random_arr = []
+
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
         self.display.print(self.language_dict[self.current_language][0]["testing_eeprom"])
+
+        # Ieraksta nejaušas secības simbolus uz EEPROM komponentes atmiņas katrā lapā.
         try:
 
             for i in range(256):
@@ -227,12 +267,13 @@ class ComponentTests:
             self.results_list.append(self.language_dict[self.current_language][0]["eeprom_write_ok"])
             self.results_list_to_send.append("ee-true:")
             
-
-        except:#Finds out if the EEPROM writing works
+        # Ja rakstīšana uz EEPROM komponentes nestrādā.
+        except:
             self.results_list.append(self.language_dict[self.current_language][0]["eeprom_write_er"])
             self.results_list_to_send.append("ee-false:")
             self.i2c_devices[0][2]='False'
 
+        # Nolasa tikko ierakstītās nejaušās secības simbolu vērtības uz EEPROM komponentes.
         try:
             
             for i in range(256):
@@ -256,7 +297,8 @@ class ComponentTests:
 
                 self.i2c_devices[0][2]='False'
 
-        except:#Finds out if the EEPROM reading works
+        # Ja lasīšana uz EEPROM komponentes nestrādā.
+        except:
             self.results_list.append(self.language_dict[self.current_language][0]["eeprom_read_er"])
             if "ee-false:" not in self.results_list_to_send:
 
@@ -267,28 +309,36 @@ class ComponentTests:
 
             self.i2c_devices[0][2]='False'
 
+        # Izveido tukšu EEPROM komponentes atmiņu.
         self.eprom.wipe()
 
-    def RTC_check(self):#Real-Time-Clock hardware testing function
+    # Real-Time-Clock komponentes pārbaudes funkcija.
+    def RTC_check(self):
+
+        # Izveido jaunu kadru, kas liecina, ka tiek pārbaudīta komponente.
         self.NewFrame(self.page)
 
         self.display.set_pos(10, 60)
         self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
         self.display.print(self.language_dict[self.current_language][0]["testing_rtc"])
 
-        oldRtc=self.rtc.datetime()#Variable used to set RTC time to currect time
+        # Saglabā šī brīža saglabāto laiku no Real-Time-Clock komponentes.
+        oldRtc=self.rtc.datetime()
 
+        # Ieraksta jaunu datumu uz Real-Time-Clock komponentes.
         try:
-            self.rtc.datetime((2020, 1, 21, 2, 10, 32, 36, 0))#Writes RTC time
+            self.rtc.datetime((2020, 1, 21, 2, 10, 32, 36, 0))
 
             self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_ok"])
             self.results_list_to_send.append("rtc-true:")
 
-        except:#Finds out if the RTC writing works
+        # Ja Real-Time-Clock komponentes rakstīšana nestrādā.
+        except:
             self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_er"])
             self.results_list_to_send.append("rtc-false:")
             self.i2c_devices[1][2]='False'
 
+        # Nolasa vai tikko ierakstītais datums sakrīt ar gadu un minūtēm.
         try:
             if self.rtc.datetime()[0] == 2020 and self.rtc.datetime()[4] == 10:
 
@@ -297,7 +347,8 @@ class ComponentTests:
                 if "rtc-false:" not in self.results_list_to_send and "rtc-true" not in self.results_list_to_send:
                     self.results_list_to_send.append("rtc-true:")
 
-        except:#Finds out if RTC hardware even works
+        # Ja Real-Time-Clock komponentes lasīšana nestrādā.
+        except:
             self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_er"])
 
             if "rtc-false:" not in self.results_list_to_send:
@@ -309,9 +360,13 @@ class ComponentTests:
 
             self.i2c_devices[1][2]='False'
 
+        # Ievieto atpakaļ oriģinālo laiku uz Real-Time-Clock komponentes
         self.rtc.datetime(oldRtc)
 
-    def ATmega_check(self):#ControlUnit testing function
+    # Komunikācijas pārbaudes funkcija starp rīku un ControlUnit
+    def ATmega_check(self):
+
+        # Izveido jaunu kadru, kas liecina, ka tiek pārbaudīta savstarpējā komunikācija.
         self.NewFrame(self.page)
 
         self.display.set_pos(10, 60)
@@ -320,6 +375,7 @@ class ComponentTests:
 
         ATmega = None
         
+        # Ar ControlUnit komunikācijas pārbaudes funkciju noskaidro vai lasīšana un rakstīšana darbojas.
         try:
             ATmega=self.M.HWCheck()
         except:
@@ -331,42 +387,64 @@ class ComponentTests:
 
             self.results_list_to_send.append("com-true:")
 
-        else:#If the hardware check function gives out False value
+        # Ja atbilde no funkcijas ir False.
+        else:
             self.results_list.append(self.language_dict[self.current_language][0]["rtc_write_er"])
             self.results_list.append(self.language_dict[self.current_language][0]["rtc_read_er"])
 
             self.results_list_to_send.append("com-false:")
             
-    def ATmega_relay_check(self):#Relay testing function
-        signalArr=["turnstile1_a","turnstile1_b","turnstile2_a","turnstile2_b","button1","button2"]#Array of all test-needed relays
-        for relayName in signalArr:#Goes through each test-needed relays
+    # ControlUnit releju aktivizēšanas funkcija.     
+    def ATmega_relay_check(self):
+
+        # Sarakste ar visiem pārbaudāmajiem releju nosaukumiem.
+        signalArr=["turnstile1_a","turnstile1_b","turnstile2_a","turnstile2_b","button1","button2"]
+
+        # Iet cauri katram releja nosaukumam.
+        for relayName in signalArr:
+
+            # Izvada attiecošo informāciju par releju.
             self.NewFrame(self.page)
+
             self.display.set_pos(10, 60)
             self.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
             self.display.print('* '+relayName+self.language_dict[self.current_language][0]["cu_testing"])
+
             self.display.fill_rectangle(5, 90, 180, 45, 008000)
             self.display.set_pos(10, 100)
             self.display.set_font(tt24)
             self.display.print(self.language_dict[self.current_language][0]["cu_relays"])
+
             self.display.set_font(tt14)
-            self.M.Queue("SIGNAL",relayName)#Signals ControlUnit to turn on relay
+
+            # Nosūta releja aktivizēšanas komandu uz ControlUnit.
+            self.M.Queue("SIGNAL",relayName)
             self.M.Send(True)
+
             self.page+=1
+
             utime.sleep(3)
 
-    def RFID_check(self): # RFID card reader testing function
+    # Karšu lasītāja pārbaudes funkcija.
+    def RFID_check(self):
 
-        RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]#RFID card reader addresses
+        # Karšu lasītāja adreses uz ControlUnit.
+        RFID_adr=[[2,3,6,8],[9,10,7,11],[14,15,26,13],[28,29,6,27]]
 
         loop=0
 
-        for i, add in enumerate(RFID_adr):#Goes through each pin address to test
+        # Iet cauri katrai ControlUnit karšu lasītāja adresēm.
+        for i, add in enumerate(RFID_adr):
             self.page+=1
-            wiegand_reader = Wiegand(add[0], add[1])#Sets the pin addresses to work with the wiegand protocol
 
+            # Pievieno adreses uz Wiegand klases, lai karšu lasītājus varētu izmantot.
+            wiegand_reader = Wiegand(add[0], add[1])
+
+            # Karšu lasītāja LED gaisma un zumers.
             led=Pin(add[2],Pin.OUT)
             buz=Pin(add[3],Pin.OUT)
 
+            # Izvada attiecošo informāciju par karšu lasītāja pārbaudi.
             self.NewFrame(self.page)
 
             self.display.set_pos(170, 10)
@@ -393,11 +471,15 @@ class ComponentTests:
             self.display.set_pos(10, 220)
             self.display.print(self.language_dict[self.current_language][0]["w_card_type"])
 
+            # Bezgalīgs cikls, kurš gaida signālu no metodes, ka karšu lasītāja dati ir saņemti.
             while True:
-                if wiegand_reader.available():#Checks if card has been scanned by the RFID card reader
+
+                # Ja karšu lasītāja dati ir saņemti.
+                if wiegand_reader.available():
                     
                     loop+=1
                     
+                    # Signalizē kartes noskenēšanos
                     for x in range(3):
                         led.high()
                         buz.high()
@@ -409,7 +491,8 @@ class ComponentTests:
 
                     utime.sleep(0.4)
 
-                    card_code = wiegand_reader.GetCode()# Gets the card code
+                    # Uz ekrāna izvada nolasītās kartes informāciju
+                    card_code = wiegand_reader.GetCode()
                     self.display.set_pos(10, 160)
                     self.display.print(self.language_dict[self.current_language][0]["w_card_data"] + str(card_code))
 
@@ -418,47 +501,56 @@ class ComponentTests:
                     self.display.set_pos(10, 190)
                     self.display.print(self.language_dict[self.current_language][0]["w_card_data_rev"] + str(card_revCode))                        
 
-                    card_type = wiegand_reader.GetType()# Gets the RFID bit type
+                    card_type = wiegand_reader.GetType()
                     self.display.set_pos(10, 220)
                     self.display.print(self.language_dict[self.current_language][0]["w_card_type"] + str(card_type))
                     
                     if loop == 1:
 
-                        self.rfid_res.append(str(i+1)+'.')#Puts the RFID card reader functionality status
+                        # Pievieno sarakstei karšu lasītāja pārbaudes rezultātu.
 
-                button_pressed = self.main_button.value() == 0  # Check if the button is pressed
+                        self.rfid_res.append(str(i+1)+'.')
 
+                button_pressed = self.main_button.value() == 0
+
+                # Ja poga nospiesta, tad cikls beidzas un seko uz tālāko karšu lasītāja adresi.
                 if button_pressed:
                     loop = 0
                     break
 
-        if self.rfid_res==[]:#If there aren't any working card readers it puts in the status array information for results showcase
+        # Ja nav nolasīta neviena karts no karšu lasītāja, tad ievieto sarakstē atbilstošu tekstu.
+        if self.rfid_res==[]:
 
             self.results_list.append(self.language_dict[self.current_language][0]["w_test_er"])
 
-        elif self.rfid_res != []:#If there are working card readers it puts in the status array information for results showcase
+        # Ja tiek nolasīta karts no karšu lasītāja, tad tos saglabā sarakstē.
+        elif self.rfid_res != []:
 
             self.results_list.append('* '+str(len(self.rfid_res))+self.language_dict[self.current_language][0]["w_test_ok"])
 
+        # Saglabā datnē karšu lasītāja rezultātus.
         for i in range(4):
             if str(i+1)+"." in self.rfid_res:
                 self.results_list_to_send.append("w"+str(i+1)+"-true:")
             else:
                 self.results_list_to_send.append("w"+str(i+1)+"-false:")
 
-
-
+# Funkcija, kas uzģenerē nejaušas secības simbolus.
 def RandomString(length=6):
     characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     random_string = ''.join(random.choice(characters) for _ in range(length))
     return random_string
 
+# Funkcija, kas nolasa no faila rīka saskarnes valodas vārdnīcu.
 def GetLang():
     with open('/language_dict.json', encoding='utf-8') as f:
         data = json.load(f)
     return data
 
+# Funkcija, kas nolasa saglabātos pārbaudes rezultātu datus un izmantojamo valodu.
 def GetConf():
+
+    # Ja nav atrasts fails, tad to izveido.
     try:
         open('/conf.json', encoding='utf-8')
 
