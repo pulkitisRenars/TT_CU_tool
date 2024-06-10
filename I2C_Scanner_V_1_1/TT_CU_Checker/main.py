@@ -459,7 +459,7 @@ def TestResults():
 
                         CT.display.set_color(color565(0, 0, 0), color565(255, 255, 255))
 
-                    CT.display.fill_rectangle(0 , 240, 240, 5, 000030)
+                    CT.display.fill_rectangle(0 , 240, 240, 5, 63488)
 
                     # Izvada uz displeja pārbaudes galējo rezultātu.
                     CT.display.set_pos(30, 250)

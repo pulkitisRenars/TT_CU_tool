@@ -519,12 +519,13 @@ class ConfigTTCUChecker:
 
         self.history_box.pack()
 
-
+    # Funkcija, kas ielādē rīka konfigurācijas rāmi uz aplikācijas loga.
     def LoadConfigure(self):
 
         self.clicked_history = False
         self.clicked_config = True
 
+        # Iznīcina nevajadzīgos rāmjus no loga.
         self.configure_box.pack_forget()  
         self.configure_box.destroy()
         self.history_box.destroy()
@@ -534,6 +535,7 @@ class ConfigTTCUChecker:
         else:
             self.CreateWindow()
 
+        # Izveido attiecošos elementus uz rāmja.
         self.configure_box = Frame(self.content_box, width=1300, height=600, bg="#fff")
         self.configure_box.pack()
 
@@ -541,6 +543,7 @@ class ConfigTTCUChecker:
 
         Label(self.configure_box, text=self.language[self.current_language][0]["configure_language"], font=('MS Sans Serif', 14), bg="#fff").place(x=35, y= 100)
 
+        # Ja rīks savienots, tad tiek izvadīta izmantotā valoda uz rīka saskarnes.
         if self.device_connected:
             Label(self.configure_box, text=self.language[self.current_language][0]["current_language"]+self.language_option_val.get(), font=('MS Sans Serif', 14), bg="#fff").place(x=900, y= 70)
 
@@ -553,17 +556,22 @@ class ConfigTTCUChecker:
 started = False
 Window = ConfigTTCUChecker()
 
+# Galvenā funkcija, kas tiek palaista, lai visi procesi funkcionētos asinhroni.
 async def main():
     started = False
 
+    # Atjauno Tkinter loga informāciju.
     async def RunTkinter():
         while True:
             Window.root.update()
             await asyncio.sleep(0.01)
 
+    # Funkcija, kas pārbauda vai rīks ir savienots ar darbstaciju asinhroni.
     async def CheckConnectedDevice():
         ser = Serial()
         while True:
+
+            # Process turpinas, ja rīks ir iepriekš izveidots.
             if Window.device_connected is not False:
 
                 check = True
@@ -585,11 +593,13 @@ async def main():
                 await asyncio.sleep(4)
             else:
                 await asyncio.sleep(1)
-
+    
     while not started:
         Window.CreateWindow()
         started = True
 
+    # Ievieto divas asinhronās funkcijas, asyncio funkciju palaišanai.
     await asyncio.gather(RunTkinter(), CheckConnectedDevice())
 
+# Tiek palaists viss process.
 asyncio.run(main())

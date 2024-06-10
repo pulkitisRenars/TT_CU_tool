@@ -23,10 +23,12 @@ class MSG():
     txP=Pin(4)
     dev=None
     
-    frame_size=4 # one frame of data is 4bytes
+    # Viens kadrs ir 4 baiti.
+    frame_size=4
     rcv_count=0
     buffer=bytearray(0)
     
+    # Visas kommandas uz ControlUnit.
     type_map={
         "ACK":0,
         "GET":1,
@@ -189,6 +191,7 @@ class MSG():
     }
     r_chP = {v: k for k, v in channel_ports.items()}
 
+    # Konstruktors klasei, kas izveido savienojumu starp rīku un ControlUnit mikročipu.
     def __init__(self,print,rx=rxP,tx=txP,rate=rate):
         self.rate=rate
         self.PUSH=self.GET
@@ -199,6 +202,7 @@ class MSG():
         self.dev=uart
         self.MSGSocket=None
 
+    # Funkcija, kas pārbauda savienojamību starp rīku un ControlUnit mikročipu.
     def HWCheck(self,timeout=3000):
             print("rrr")
             ts = time.time()
@@ -257,6 +261,7 @@ class MSG():
         return self.rQueue
 
 
+    # Funkcija, kas pievieno sarakstei komandu.
     def Queue(self,method,cmd,value=0):
         if not method in self.type_map or ( not cmd in self.GET and not cmd in self.SET and not cmd in self.SIGNAL ):
             self.Logger("error","Failed to Queue({},{},{})".format(method,cmd,value))
@@ -266,6 +271,7 @@ class MSG():
         if self.sq>255:
             self.sq=1
 
+        # Atšifrē komandas atslēgu.
         type=self.type_map[method]
         if method=="GET":
             key=self.GET[cmd]
@@ -283,7 +289,8 @@ class MSG():
 
         self.Logger("debug","Queue({},{},{})".format(method,cmd,value) )
         self.queue.append( frame )
-        
+
+    # Funkcija, kas nosūta sarakstei pievienotās komandas uz ControlUnit mikročipu.
     def Send(self,no_resend=False):
         global blobData
         now  = self.millis()
@@ -308,10 +315,11 @@ class MSG():
         if no_resend:
             self.queue=[]
 
+    # Funkcija, kas saņem atbildi no ControlUnit mikročipa.
     def Receive(self, return_data=False):
         rcv_size = len(blobData)
         if rcv_size > 0:
-            # First time we see new data, we create a buffer
+            # Kad ir jauni dati, izveido saraksti.
             if self.rcv_count == 0:
                 self.buffer = []
             dump = ""
@@ -338,16 +346,17 @@ class MSG():
                     rcv_data.append(frame)
                 print("in receive")
                 print(rcv_data)
-                # Data return instead of callback for HWCheck
+               
+                # Atgriež datus, ja tie ir saņemti.
                 if return_data:
                     print("log")
-                    # clear buffer
+                    # Iztīra saraksti.
                     self.buffer = bytearray(0)
                     self.rcv_count = 0
                     return rcv_data
 
                 for data in rcv_data:
-                    # validate data bits
+                    # Validē atgrieztos datus
                     if data["type"] == 0 and data["key"] == 0 and data["value"] == 0:
                         self.Logger("error", "Received invalid data bits: {}".format(data))
                         continue
@@ -366,6 +375,7 @@ class MSG():
                             self.KeyToCONFCMD(data["key"]) , data["value"] 
                             self.CONF_callback(data["key"],data["value"])
 
+            # Atgriež, ka neveiksmīgi saņemta atbilde
             else:
                 blob_bytes = []
                 for i in range(0, self.rcv_count):
@@ -378,7 +388,7 @@ class MSG():
             self.rcv_count = 0
 
 
-        
+# Palīg-funkcijas rīka un ControlUnit komunikācijai.
     def ACK(self,sq):
         self.Logger("debug","ACK({})".format(sq))
         frame={
@@ -416,7 +426,6 @@ class MSG():
     def QueueSize(self):
         return len(self.queue)
     
-    # -- Internal helper functions --
     def KeyToCONFCMD(self,key):
         for cmd in self.CONF:
             if self.CONF[cmd]==key:
