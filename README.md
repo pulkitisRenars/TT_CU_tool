@@ -36,6 +36,18 @@ ___
 >
 > * Izmantojot ***TT_CU_Checker konfigurācijas aplikāciju*** ir iespējams apskatīt iepriekšējo mikročipu pārbaudes rezultātus.
 
+> [!IMPORTANT]
+> ### Kā pielietot programmatūras:
+>
+> * Ievietot rīka mikrokontrollierī "TT_CU_checker code/TT_CU_Checker" esošo failu saturu, kas veiksmīgi pielietos rīka programmatūru;
+>
+> * Atvērt konfigurācijas aplikāciju lejupieladējot "/bin/TT_CU_checker_App.exe" failu uz darbstacijas ar Windows operetājsistēmu;
+>
+> * Noskaidrot, kāds ir rīka seriālā porta numurs, lai savienotu rīku ar konfigurācijas aplikāciju:
+>   * Atvērt Ierīču pārvaldnieku;
+>   * Sarakstā jāatrod Ports (COM & LPT);
+>   * Uzklikšķinot uz saraksti jāatrod ierīce ar nosaukumu “USB Serial Device” un jānoskaidro seriāla porta numurs, piemēram, COM7.
+
 ___
 
 > [!TIP]
@@ -54,18 +66,6 @@ ___
 * RFID kartiņai;
 
 * TTunit vai ControlUnit mikročipam.
-
-
-> [!CAUTION]
-> ###  ↓  Skatīt zemāk redzamo rīka lietošanas apmācības video  ↓ 
-> [![Watch the video](https://i.stack.imgur.com/Vp2cE.png)](https://youtu.be/vt5fpE0bzSY)
-
-
-
-
-
-
-
 
 
 
